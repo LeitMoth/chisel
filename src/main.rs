@@ -4,7 +4,6 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use vmf2::vmf::BasicParser;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "solid")]
@@ -20,10 +19,11 @@ struct TestSide {
 }
 
 mod vmf;
-mod vmf2;
+// mod vmf2;
 
-use crate::{vmf::vmf::{VersionInfo, VisGroups}, vmf2::vmf::{ToGeneric, Vmf}};
+use crate::vmf::vmf::{VersionInfo, VisGroups, Vmf};
 
+/*
 fn main() -> std::io::Result<()> {
     let mut two_cube = String::new();
     BufReader::new(File::open("mp_coop_doors.vmf")?).read_to_string(&mut two_cube)?;
@@ -43,11 +43,11 @@ fn main() -> std::io::Result<()> {
 
     Ok(())
 }
+*/
 
-/*
-fn main2() -> std::io::Result<()> {
+fn main() -> std::io::Result<()> {
     let vis = VisGroups { groups: Vec::new() };
-    let vis2: VisGroups = vmf::de::from_str(&vmf::ser::to_string(&vis).unwrap()).unwrap();
+    let vis2: VisGroups = vmf::de::de::from_str(&vmf::ser::ser::to_string(&vis).unwrap()).unwrap();
     println!("{vis:?} =?= {vis2:?}");
 
     let ver = VersionInfo {
@@ -58,8 +58,8 @@ fn main2() -> std::io::Result<()> {
         prefab: 0,
     };
 
-    let ver_string = vmf::ser::to_string(&ver).unwrap();
-    let ver2: VersionInfo = vmf::de::from_str(&ver_string).unwrap();
+    let ver_string = vmf::ser::ser::to_string(&ver).unwrap();
+    let ver2: VersionInfo = vmf::de::de::from_str(&ver_string).unwrap();
     println!("{ver:?} =?= {ver2:?}");
 
     let solid = TestSolid {
@@ -71,25 +71,25 @@ fn main2() -> std::io::Result<()> {
         ],
     };
 
-    let solid_string = vmf::ser::to_string(&solid).unwrap();
+    let solid_string = vmf::ser::ser::to_string(&solid).unwrap();
     println!("{solid_string}");
-    let solid2: TestSolid = vmf::de::from_str(&solid_string).unwrap();
+    let solid2: TestSolid = vmf::de::de::from_str(&solid_string).unwrap();
 
     println!("{solid:#?}\n=?=\n{solid2:#?}");
 
     let mut two_cube = String::new();
     BufReader::new(File::open("2_cube.vmf")?).read_to_string(&mut two_cube)?;
 
-    let temp = vmf::de::from_str(&two_cube);
+    let temp = vmf::de::de::from_str(&two_cube);
 
     let Vmf(version_info, vis_groups, view_settings, world, cameras, cordons) = temp.unwrap();
 
-    let vmf: Vmf = vmf::de::from_str(&two_cube).unwrap();
+    let vmf: Vmf = vmf::de::de::from_str(&two_cube).unwrap();
 
     println!("{vmf:#?}");
 
     BufWriter::new(File::create("2_cube_TEST.vmf")?)
-        .write_all(&vmf::ser::to_string(&vmf).unwrap().as_bytes())?;
+        .write_all(&vmf::ser::ser::to_string(&vmf).unwrap().as_bytes())?;
 
     /*
     Main TODO items: fully parse in everything like planes and uvs, right now I
@@ -106,4 +106,3 @@ fn main2() -> std::io::Result<()> {
 
     Ok(())
 }
-*/

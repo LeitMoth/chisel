@@ -1,6 +1,6 @@
 use serde::{ser, Serialize};
 
-use super::error::{Error, Result};
+use crate::vmf::error::{Error, Result};
 
 pub struct Serializer {
     output: String,

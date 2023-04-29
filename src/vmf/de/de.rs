@@ -1,8 +1,10 @@
-use std::str::FromStr;
+use std::{collections::HashMap, iter::Map, str::{FromStr, Lines}};
 
 use serde::{de, Deserialize};
 
 use crate::vmf::error::{Error, Result};
+
+use super::basic::TextTree;
 
 pub struct Deserializer<'de> {
     input: &'de str,
@@ -236,14 +238,60 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
+        {
+            // Special things to do before we get to the first element
+
+            // trim the start: to keep from trimming everywhere, I have decided
+            // that if you are going to do something other than a find on the string,
+            // just do the trim directly before it. The reader is responsible for the trimming.
+            self.input = self.input.trim_start();
+            if !self.try_remove_from_start(name) {
+                // This error is actually caught and used for logic, which isn't great.
+                // I don't know a better solution at the moment.
+                // Lists of things are very strange, and we really only know we want to
+                // switch to a new list when the name of the struct is changed.
+                // and we have to be inside this function, already processing the element,
+                // in order to see that the name has changed
+                return Err(Error::StructNameChanged);
+            }
+            // Move past the first bracket
+            self.jump_past("{")?;
+        }
+
+        let mut parent_count = 1;
+        let mut i = 0;
+        while parent_count != 0 {
+            match self.input.chars().nth(i) {
+                Some('{') => parent_count += 1,
+                Some('}') => parent_count -= 1,
+                None => return Err(Error::BadStruct),
+                _ => ()
+            }
+            i += 1
+        }
+
+        let new_thing = &self.input[0..i-1];
+
+        
+
+        let rest = &self.input[i..];
+
+        // self.input = rest;
+
         // Looked at Postcard, thanks
         visitor.visit_seq(StructAccess {
             de: self,
             fields,
             name,
             index: 0,
+            thing: parse_struct(new_thing),
+            lines: new_thing.trim().lines(),
         })
     }
+}
+
+fn parse_struct(text: &str) -> HashMap<&str,Vec<&str>> {
+    HashMap::new()
 }
 
 struct SeqAcess<'a, 'de: 'a> {
@@ -285,6 +333,30 @@ struct StructAccess<'a, 'de: 'a> {
     fields: &'static [&'static str],
     name: &'static str,
     index: usize,
+    thing: HashMap<&'a str, Vec<&'a str>>,
+    lines: Lines<'a>,
+}
+
+struct MapAccess<'a, 'de: 'a> {
+    de: &'a mut Deserializer<'de>,
+}
+
+impl<'de, 'a> de::MapAccess<'de> for MapAccess<'a, 'de> {
+    type Error = Error;
+
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
+    where
+        K: de::DeserializeSeed<'de>,
+    {
+        Ok(None)
+    }
+
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
+    where
+        V: de::DeserializeSeed<'de>,
+    {
+        todo!()
+    }
 }
 
 impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
@@ -295,25 +367,6 @@ impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
         T: de::DeserializeSeed<'de>,
     {
         let result;
-
-        // Special things to do before we get to the first element
-        if self.index == 0 {
-            // trim the start: to keep from trimming everywhere, I have decided
-            // that if you are going to do something other than a find on the string,
-            // just do the trim directly before it. The reader is responsible for the trimming.
-            self.de.input = self.de.input.trim_start();
-            if !self.de.try_remove_from_start(self.name) {
-                // This error is actually caught and used for logic, which isn't great.
-                // I don't know a better solution at the moment.
-                // Lists of things are very strange, and we really only know we want to
-                // switch to a new list when the name of the struct is changed.
-                // and we have to be inside this function, already processing the element,
-                // in order to see that the name has changed
-                return Err(Error::StructNameChanged);
-            }
-            // Move past the first bracket
-            self.de.jump_past("{")?;
-        }
 
         if self.fields[self.index] == "" {
             // An empty field means a list or structure is here. We can just deserialize it
