@@ -1,18 +1,47 @@
-use std::{collections::HashMap, iter::Map, str::{FromStr, Lines}};
+use std::{
+    collections::HashMap,
+    fs::File,
+    iter::Map,
+    str::{FromStr, Lines},
+};
 
 use serde::{de, Deserialize};
 
+use std::io::Write;
+
 use crate::vmf::error::{Error, Result};
 
-use super::basic::TextTree;
+use super::basic::{BasicParser, TextTree};
 
 pub struct Deserializer<'de> {
-    input: &'de str,
+    // input: &'de str,
+    // input: TextTree<'de>,
+    // current_parent: TextTree<'de>,
+    current_children: Option<Vec<TextTree<'de>>>,
+    current_values: Option<Vec<&'de str>>,
+
+    // root: TextTree<'de>,
+    parent_stack: Vec<TextTree<'de>>,
 }
 
 impl<'de> Deserializer<'de> {
     pub fn from_str(input: &'de str) -> Self {
-        Deserializer { input }
+        let inp = BasicParser { input }.read_tree().unwrap();
+        // println!("{inp:#?}");
+
+        // let mut out = File::create("test").unwrap();
+
+        // write!(out,"{inp:#?}").unwrap();
+
+        // drop(out);
+
+        Deserializer {
+            // input:
+            // root: inp,
+            parent_stack: vec![inp],
+            current_children: None,
+            current_values: None,
+        }
     }
 }
 
@@ -23,14 +52,16 @@ where
     let mut deserializer = Deserializer::from_str(s);
     let t = T::deserialize(&mut deserializer)?;
     // We don't care if we only have whitespace left over
-    if deserializer.input.trim().is_empty() {
-        Ok(t)
-    } else {
-        Err(Error::TrailingCharacters)
-    }
+    // if deserializer.input.trim().is_empty() {
+    //     Ok(t)
+    // } else {
+    //     Err(Error::TrailingCharacters)
+    // }
+    Ok(t)
 }
 
-impl<'de> Deserializer<'de> {
+/*
+impl Deserializer<'de> {
     // Parsing helper functions
 
     fn jump_past(&mut self, pattern: &str) -> Result<()> {
@@ -96,13 +127,23 @@ impl<'de> Deserializer<'de> {
     }
 }
 
+*/
+
 macro_rules! deserialize {
     ($de: ident, $vis: ident) => {
         fn $de<V>(self, visitor: V) -> Result<V::Value>
         where
             V: de::Visitor<'de>,
         {
-            visitor.$vis(self.parse()?)
+            visitor.$vis(
+                self.current_values
+                    .as_mut()
+                    .ok_or(Error::ExpectedInteger)?
+                    .pop()
+                    .ok_or(Error::ExpectedInteger)?
+                    .parse()
+                    .map_err(|_| Error::ExpectedInteger)?,
+            )
         }
     };
 }
@@ -177,14 +218,32 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_bool(self.parse_bool()?)
+        let s = self
+            .current_values
+            .as_mut()
+            .ok_or(Error::ExpectedBoolean)?
+            .pop()
+            .ok_or(Error::ExpectedBoolean)?;
+        if s.eq("1") {
+            visitor.visit_bool(true)
+        } else if s.eq("0") {
+            visitor.visit_bool(false)
+        } else {
+            Err(Error::ExpectedBoolean)
+        }
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_borrowed_str(self.parse_string()?)
+        visitor.visit_borrowed_str(
+            self.current_values
+                .as_mut()
+                .ok_or(Error::ExpectedString)?
+                .pop()
+                .ok_or(Error::ExpectedString)?,
+        )
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
@@ -198,9 +257,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        self.jump_past("}")?;
+        // self.jump_past("}")?;
+        todo!();
 
-        visitor.visit_unit()
+        // visitor.visit_unit()
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
@@ -238,60 +298,41 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
-        {
-            // Special things to do before we get to the first element
+        let next = self
+            .parent_stack
+            .last_mut()
+            .unwrap()
+            .children_nodes
+            .get_mut(name);
+        // if let None = next {
+        //     return visitor.visit_seq(StructAccess {
+        //         de: self,
+        //         fields,
+        //         index: 0,
+        //         empty: true,
+        //     });
+        // }
+        let asdf = next.unwrap().pop();
 
-            // trim the start: to keep from trimming everywhere, I have decided
-            // that if you are going to do something other than a find on the string,
-            // just do the trim directly before it. The reader is responsible for the trimming.
-            self.input = self.input.trim_start();
-            if !self.try_remove_from_start(name) {
-                // This error is actually caught and used for logic, which isn't great.
-                // I don't know a better solution at the moment.
-                // Lists of things are very strange, and we really only know we want to
-                // switch to a new list when the name of the struct is changed.
-                // and we have to be inside this function, already processing the element,
-                // in order to see that the name has changed
-                return Err(Error::StructNameChanged);
-            }
-            // Move past the first bracket
-            self.jump_past("{")?;
+        if let None = asdf {
+            return Err(Error::Test);
         }
-
-        let mut parent_count = 1;
-        let mut i = 0;
-        while parent_count != 0 {
-            match self.input.chars().nth(i) {
-                Some('{') => parent_count += 1,
-                Some('}') => parent_count -= 1,
-                None => return Err(Error::BadStruct),
-                _ => ()
-            }
-            i += 1
-        }
-
-        let new_thing = &self.input[0..i-1];
-
         
-
-        let rest = &self.input[i..];
-
-        // self.input = rest;
+        let bbbb = asdf.unwrap();
+        self.parent_stack.push(bbbb);
 
         // Looked at Postcard, thanks
-        visitor.visit_seq(StructAccess {
+        let temp = visitor.visit_seq(StructAccess {
             de: self,
             fields,
-            name,
             index: 0,
-            thing: parse_struct(new_thing),
-            lines: new_thing.trim().lines(),
-        })
-    }
-}
+            empty: false,
+        });
 
-fn parse_struct(text: &str) -> HashMap<&str,Vec<&str>> {
-    HashMap::new()
+        self.parent_stack.pop();
+
+        temp
+    }
 }
 
 struct SeqAcess<'a, 'de: 'a> {
@@ -305,58 +346,34 @@ impl<'de, 'a> de::SeqAccess<'de> for SeqAcess<'a, 'de> {
     where
         T: de::DeserializeSeed<'de>,
     {
-        let opened = self.de.input.find("{");
-        let closed = self.de.input.find("}");
+        // match (
+        //     self.de.current_values.as_ref(),
+        //     self.de.current_children.as_ref(),
+        // ) {
+        //     // (Some(values), _) if values.len() == 0 => return Ok(None),
+        //     // (_, Some(children)) if children.len() == 0 => return Ok(None),
+        //     (None, None) => return Ok(None),
+        //     _ => (),
+        // }
 
-        match (opened, closed) {
-            // (None,None) => Err(Error::Eof),
-            (None, _) => Ok(None),
-            (Some(opened), Some(closed)) if closed < opened => Ok(None),
-            _ => {
-                let thing = seed.deserialize(&mut *self.de);
-
-                if let Err(Error::StructNameChanged) = thing {
-                    // If we went one element too far and went into a different list
-                    // we stop the list there
-                    Ok(None)
-                } else {
-                    // Otherwise we use the value and continue
-                    thing.map(Some)
-                }
-            }
+        if self.de.parent_stack.last().unwrap().children_nodes.len() == 0 && self.de.parent_stack.last().unwrap().key_value_pairs.len() == 0 {
+            return Ok(None)
         }
+        let temp = seed.deserialize(&mut *self.de);
+
+        if let Err(Error::Test) = temp {
+            return Ok(None)
+        }
+        
+        temp.map(Some)
     }
 }
 
 struct StructAccess<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     fields: &'static [&'static str],
-    name: &'static str,
     index: usize,
-    thing: HashMap<&'a str, Vec<&'a str>>,
-    lines: Lines<'a>,
-}
-
-struct MapAccess<'a, 'de: 'a> {
-    de: &'a mut Deserializer<'de>,
-}
-
-impl<'de, 'a> de::MapAccess<'de> for MapAccess<'a, 'de> {
-    type Error = Error;
-
-    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-    where
-        K: de::DeserializeSeed<'de>,
-    {
-        Ok(None)
-    }
-
-    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value>
-    where
-        V: de::DeserializeSeed<'de>,
-    {
-        todo!()
-    }
+    empty: bool,
 }
 
 impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
@@ -366,35 +383,34 @@ impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
     where
         T: de::DeserializeSeed<'de>,
     {
-        let result;
-
-        if self.fields[self.index] == "" {
-            // An empty field means a list or structure is here. We can just deserialize it
-            result = seed.deserialize(&mut *self.de);
-        } else {
-            // Non empty field means it is a simple "key" "value" setup
-            self.de.jump_past("\"")?;
-            self.de
-                .remove_from_start(&self.fields[self.index])
-                .ok_or(Error::ExpectedFieldName)?;
-            self.de
-                .remove_from_start("\"")
-                .ok_or(Error::ExpectedClosingQuote)?;
-
-            self.de.jump_past("\"")?;
-
-            result = seed.deserialize(&mut *self.de);
-
-            self.de.jump_past("\"")?;
+        if self.empty {
+            return Ok(None);
         }
+        if self.index >= self.fields.len() {
+            return Ok(None);
+        }
+
+        let current_field = self.fields[self.index];
+
+        self.de.current_values = self
+            .de
+            .parent_stack
+            .last_mut()
+            .as_mut()
+            .unwrap()
+            .key_value_pairs
+            .remove(current_field);
+        self.de.current_children = self
+            .de
+            .parent_stack
+            .last_mut()
+            .as_mut()
+            .unwrap()
+            .children_nodes
+            .remove(current_field);
 
         self.index += 1;
 
-        // If we just finished with the last element, clean up the ending curly brace
-        if self.index >= self.fields.len() {
-            self.de.jump_past("}")?;
-        }
-
-        return result.map(Some);
+        return seed.deserialize(&mut *self.de).map(Some);
     }
 }

@@ -29,7 +29,6 @@ pub struct VersionInfo {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "visgroups")]
 pub struct VisGroups {
-    #[serde(rename = "")]
     pub groups: Vec<VisGroups>,
 }
 

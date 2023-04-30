@@ -1,2 +1,2 @@
-pub mod de;
 mod basic;
+pub mod de;

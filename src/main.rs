@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "solid")]
 struct TestSolid {
-    #[serde(rename = "")]
     sides: Vec<TestSide>,
 }
 
@@ -46,47 +45,50 @@ fn main() -> std::io::Result<()> {
 */
 
 fn main() -> std::io::Result<()> {
-    let vis = VisGroups { groups: Vec::new() };
-    let vis2: VisGroups = vmf::de::de::from_str(&vmf::ser::ser::to_string(&vis).unwrap()).unwrap();
-    println!("{vis:?} =?= {vis2:?}");
+    // let vis = VisGroups { groups: Vec::new() };
+    // let vis_string = &vmf::ser::ser::to_string(&vis).unwrap();
+    // println!("{vis_string}");
+    // let vis2: VisGroups = vmf::de::de::from_str(&vis_string).unwrap();
+    // println!("{vis:?} =?= {vis2:?}");
 
-    let ver = VersionInfo {
-        editor_version: 400,
-        editor_build: 8997,
-        map_version: 1,
-        format_version: 100,
-        prefab: 0,
-    };
+    // let ver = VersionInfo {
+    //     editor_version: 400,
+    //     editor_build: 8997,
+    //     map_version: 1,
+    //     format_version: 100,
+    //     prefab: 0,
+    // };
 
-    let ver_string = vmf::ser::ser::to_string(&ver).unwrap();
-    let ver2: VersionInfo = vmf::de::de::from_str(&ver_string).unwrap();
-    println!("{ver:?} =?= {ver2:?}");
+    // let ver_string = vmf::ser::ser::to_string(&ver).unwrap();
+    // println!("{ver_string}");
+    // let ver2: VersionInfo = vmf::de::de::from_str(&ver_string).unwrap();
+    // println!("{ver:?} =?= {ver2:?}");
+    // println!("{ver:?}");
 
-    let solid = TestSolid {
-        sides: vec![
-            TestSide { height: 1 },
-            TestSide { height: 2 },
-            TestSide { height: 10 },
-            TestSide { height: 4 },
-        ],
-    };
+    // let solid = TestSolid {
+    //     sides: vec![
+    //         TestSide { height: 1 },
+    //         TestSide { height: 2 },
+    //         TestSide { height: 10 },
+    //         TestSide { height: 4 },
+    //     ],
+    // };
 
-    let solid_string = vmf::ser::ser::to_string(&solid).unwrap();
-    println!("{solid_string}");
-    let solid2: TestSolid = vmf::de::de::from_str(&solid_string).unwrap();
+    // let solid_string = vmf::ser::ser::to_string(&solid).unwrap();
+    // println!("{solid_string}");
+    // let solid2: TestSolid = vmf::de::de::from_str(&solid_string).unwrap();
 
-    println!("{solid:#?}\n=?=\n{solid2:#?}");
+    // println!("{solid:#?}\n=?=\n{solid2:#?}");
+    // println!("{solid:#?}");
 
     let mut two_cube = String::new();
     BufReader::new(File::open("2_cube.vmf")?).read_to_string(&mut two_cube)?;
 
-    let temp = vmf::de::de::from_str(&two_cube);
+    let temp = vmf::de::de::from_str::<Vmf>(&two_cube);
 
-    let Vmf(version_info, vis_groups, view_settings, world, cameras, cordons) = temp.unwrap();
+    // let Vmf(version_info, vis_groups, view_settings, world, cameras, cordons) = temp.unwrap();
 
     let vmf: Vmf = vmf::de::de::from_str(&two_cube).unwrap();
-
-    println!("{vmf:#?}");
 
     BufWriter::new(File::create("2_cube_TEST.vmf")?)
         .write_all(&vmf::ser::ser::to_string(&vmf).unwrap().as_bytes())?;

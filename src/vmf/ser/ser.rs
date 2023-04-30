@@ -5,6 +5,8 @@ use crate::vmf::error::{Error, Result};
 pub struct Serializer {
     output: String,
     indent: u8,
+    buffer: Vec<String>,
+    last_field_was_struct: bool,
 }
 
 impl Serializer {
@@ -27,6 +29,8 @@ where
     let mut serializer = Serializer {
         output: String::new(),
         indent: 0,
+        buffer: Vec::new(),
+        last_field_was_struct: false,
     };
     value.serialize(&mut serializer)?;
     Ok(serializer.output)
@@ -35,7 +39,9 @@ where
 macro_rules! serialize {
     ($ser: ident, $t: ty) => {
         fn $ser(self, v: $t) -> Result<()> {
-            self.output += &v.to_string();
+            self.buffer.push(v.to_string());
+            self.last_field_was_struct = false;
+            // self.output += &v.to_string();
             Ok(())
         }
     };
@@ -150,12 +156,16 @@ impl<'a> ser::Serializer for &'a mut Serializer {
     serialize! {serialize_char, char}
 
     fn serialize_bool(self, v: bool) -> Result<()> {
-        self.output += if v { "1" } else { "0" };
+        self.buffer.push(if v { "1" } else { "0" }.to_string());
+        self.last_field_was_struct = false;
+        // self.output += if v { "1" } else { "0" };
         Ok(())
     }
 
     fn serialize_str(self, v: &str) -> Result<()> {
-        self.output += v;
+        self.buffer.push(v.to_string());
+        self.last_field_was_struct = false;
+        // self.output += v;
         Ok(())
     }
 
@@ -165,7 +175,10 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self.add_padded_line("}");
         Ok(())
     }
+
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
+        self.buffer.push("".to_string());
+        self.last_field_was_struct = false;
         Ok(self)
     }
 
@@ -185,6 +198,7 @@ impl<'a> ser::Serializer for &'a mut Serializer {
         self.add_padded_line(name);
         self.add_padded_line("{");
         self.indent += 1;
+        self.last_field_was_struct = false;
         Ok(self)
     }
 }
@@ -209,22 +223,55 @@ impl<'a> ser::SerializeStruct for &'a mut Serializer {
          * It is a bit hacky, but as long as I mark all up all Vec's with #[serde(rename="")] they will be serialized correctly
          * Deserialization was a bit tricky because of the ambiguity
          */
-        if key != "" {
+        // if key != "" {
+        //     self.pad();
+        //     self.output += "\"";
+        //     key.serialize(&mut **self)?;
+
+        //     self.output += "\" \"";
+
+        //     value.serialize(&mut **self)?;
+        //     self.output += "\"\r\n";
+        // } else {
+        //     value.serialize(&mut **self)?;
+        // }
+
+        /*
+        Maybe push these two below things in to
+        a vec: Vec<Pair<String,String>>.
+        But hold off until we call the finialize method
+
+        and maybe when we are ending a struct, we can set a boolean
+        to true, that finalize can pick up on and display these correctly
+         */
+
+        // key.serialize(&mut **self)?;
+        value.serialize(&mut **self)?;
+
+        todo!(); // Maybe I add like a do_next() method, that holds a buffer and lags behind. Then we can control easier and adjust after the fact.
+
+        if self.last_field_was_struct {
+            self.output += &self.buffer.pop().unwrap();
+        } else {
             self.pad();
             self.output += "\"";
-            key.serialize(&mut **self)?;
+            self.output += &key;
 
             self.output += "\" \"";
+            self.output += &self.buffer.pop().unwrap();
 
             value.serialize(&mut **self)?;
             self.output += "\"\r\n";
-        } else {
-            value.serialize(&mut **self)?;
         }
+
+        self.last_field_was_struct = false;
+
         Ok(())
     }
 
     fn end(self) -> std::result::Result<Self::Ok, Self::Error> {
+        // bool that_was_just_a_struct = true
+        self.last_field_was_struct = true;
         self.indent -= 1;
         self.add_padded_line("}");
         Ok(())

@@ -45,9 +45,8 @@ pub struct Hidden<T> {
 #[serde(rename = "solid")]
 pub struct Solid {
     pub id: u32,
-    #[serde(rename = "")]
+    #[serde(rename = "side")]
     pub sides: Vec<Side>,
-    #[serde(rename = "")]
     pub editor: EditorProperties,
 }
 
