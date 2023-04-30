@@ -82,16 +82,36 @@ fn main() -> std::io::Result<()> {
     // println!("{solid:#?}");
 
     let mut two_cube = String::new();
-    BufReader::new(File::open("2_cube.vmf")?).read_to_string(&mut two_cube)?;
+    BufReader::new(File::open("mp_coop_doors.vmf")?).read_to_string(&mut two_cube)?;
 
     let temp = vmf::de::de::from_str::<Vmf>(&two_cube);
 
-    // let Vmf(version_info, vis_groups, view_settings, world, cameras, cordons) = temp.unwrap();
+    /*
+    hidden
+    solid
+    visgroupid
+    groupid
+    editor
 
-    let vmf: Vmf = vmf::de::de::from_str(&two_cube).unwrap();
+     */
 
-    BufWriter::new(File::create("2_cube_TEST.vmf")?)
-        .write_all(&vmf::ser::ser::to_string(&vmf).unwrap().as_bytes())?;
+    println!("{temp:#?}");
+
+    let Vmf(
+        version_info,
+        vis_groups,
+        view_settings,
+        world,
+        entities,
+        hidden_entities,
+        cameras,
+        cordons,
+    ) = temp.unwrap();
+
+    // let vmf: Vmf = vmf::de::de::from_str(&two_cube).unwrap();
+
+    // BufWriter::new(File::create("2_cube_TEST.vmf")?)
+    //     .write_all(&vmf::ser::ser::to_string(&vmf).unwrap().as_bytes())?;
 
     /*
     Main TODO items: fully parse in everything like planes and uvs, right now I

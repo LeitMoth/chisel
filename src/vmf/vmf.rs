@@ -1,4 +1,7 @@
-use super::world::World;
+use super::{
+    entity::{Entity, HiddenEntity},
+    world::World, de::basic::TextTree,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -7,9 +10,10 @@ pub struct Vmf(
     pub VisGroups,
     pub ViewSettings,
     pub World,
+    pub Vec<Entity>,
+    pub Vec<HiddenEntity>,
     pub Cameras,
     pub Cordons,
-    // pub Hidden<Entity>
 );
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +33,7 @@ pub struct VersionInfo {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "visgroups")]
 pub struct VisGroups {
-    pub groups: Vec<VisGroups>,
+    pub groups: Vec<VisGroup>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,9 +41,20 @@ pub struct VisGroups {
 pub struct VisGroup {
     pub name: String,
     pub visgroupid: u32,
+    // pub groupid: u32,
     pub color: String,
-    #[serde(rename = "")]
-    pub sub_groups: Vec<VisGroup>,
+    #[serde(rename = "visgroup")]
+    pub sub_groups: VisGroups,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "editor")]
+pub struct EditorProperties {
+    pub color: String,
+    #[serde(rename = "visgroupshown")]
+    pub visgroup_shown: u32,
+    #[serde(rename = "visgroupautoshown")]
+    pub visgroup_auto_shown: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,11 +77,36 @@ pub struct ViewSettings {
 pub struct Cameras {
     #[serde(rename = "activecamera")]
     pub active_camera: i32,
-    //cameras: Vec<Camera>,
+    pub cameras: Vec<Camera>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "camera")]
+pub struct Camera {
+    pub position: String,
+    pub look: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "cordons")]
 pub struct Cordons {
     pub active: u32,
+    #[serde(rename = "cordon")]
+    pub cordons: Vec<Cordon>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "cordon")]
+pub struct Cordon {
+    pub name: String,
+    pub active: u32,
+    #[serde(rename = "box")]
+    pub cordon_box: CordonBox,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "box")]
+pub struct CordonBox {
+    pub mins: String,
+    pub maxs: String,
 }

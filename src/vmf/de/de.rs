@@ -1,27 +1,12 @@
-use std::{
-    collections::HashMap,
-    fs::File,
-    iter::Map,
-    str::{FromStr, Lines},
-};
-
 use serde::{de, Deserialize};
-
-use std::io::Write;
 
 use crate::vmf::error::{Error, Result};
 
 use super::basic::{BasicParser, TextTree};
 
 pub struct Deserializer<'de> {
-    // input: &'de str,
-    // input: TextTree<'de>,
-    // current_parent: TextTree<'de>,
-    current_children: Option<Vec<TextTree<'de>>>,
-    current_values: Option<Vec<&'de str>>,
-
-    // root: TextTree<'de>,
     parent_stack: Vec<TextTree<'de>>,
+    current_values: Option<Vec<&'de str>>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -36,10 +21,7 @@ impl<'de> Deserializer<'de> {
         // drop(out);
 
         Deserializer {
-            // input:
-            // root: inp,
             parent_stack: vec![inp],
-            current_children: None,
             current_values: None,
         }
     }
@@ -51,83 +33,15 @@ where
 {
     let mut deserializer = Deserializer::from_str(s);
     let t = T::deserialize(&mut deserializer)?;
-    // We don't care if we only have whitespace left over
-    // if deserializer.input.trim().is_empty() {
-    //     Ok(t)
-    // } else {
-    //     Err(Error::TrailingCharacters)
-    // }
+
+    println!(
+        "ZZZZZZZ\n{:#?}\nZZZZZZZ {}",
+        deserializer.parent_stack,
+        deserializer.parent_stack.len()
+    );
+
     Ok(t)
 }
-
-/*
-impl Deserializer<'de> {
-    // Parsing helper functions
-
-    fn jump_past(&mut self, pattern: &str) -> Result<()> {
-        match self.input.find(pattern) {
-            Some(pos) => {
-                self.input = &self.input[pos + pattern.len()..];
-                Ok(())
-            }
-            None => Err(Error::Eof),
-        }
-    }
-
-    fn try_remove_from_start(&mut self, pattern: &str) -> bool {
-        if self.input.starts_with(pattern) {
-            self.input = &self.input[pattern.len()..];
-            true
-        } else {
-            false
-        }
-    }
-
-    // Returns an option of () if it succeeds.
-    // This looks a little strange, but works very well with .ok_or()
-    fn remove_from_start(&mut self, pattern: &str) -> Option<()> {
-        self.try_remove_from_start(pattern).then_some(())
-    }
-
-    fn parse_bool(&mut self) -> Result<bool> {
-        if self.input.starts_with("1") {
-            self.input = &self.input["1".len()..];
-            Ok(true)
-        } else if self.input.starts_with("0") {
-            self.input = &self.input["0".len()..];
-            Ok(false)
-        } else {
-            Err(Error::ExpectedBoolean)
-        }
-    }
-
-    fn parse<T>(&mut self) -> Result<T>
-    where
-        T: FromStr,
-    {
-        match self.input.find('"') {
-            Some(len) => {
-                let s = &self.input[..len];
-                self.input = &self.input[len..];
-                s.parse::<T>().map_err(|_| Error::BadParse)
-            }
-            None => Err(Error::Eof),
-        }
-    }
-
-    fn parse_string(&mut self) -> Result<&'de str> {
-        match self.input.find('"') {
-            Some(len) => {
-                let s = &self.input[..len];
-                self.input = &self.input[len..];
-                Ok(s)
-            }
-            None => Err(Error::Eof),
-        }
-    }
-}
-
-*/
 
 macro_rules! deserialize {
     ($de: ident, $vis: ident) => {
@@ -298,38 +212,42 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: de::Visitor<'de>,
     {
+        // println!("{:#?}", self.parent_stack);
+
         let next = self
             .parent_stack
             .last_mut()
-            .unwrap()
+            .expect("whoops, Parent stack is empty")
             .children_nodes
-            .get_mut(name);
-        // if let None = next {
-        //     return visitor.visit_seq(StructAccess {
-        //         de: self,
-        //         fields,
-        //         index: 0,
-        //         empty: true,
-        //     });
-        // }
-        let asdf = next.unwrap().pop();
+            .get_mut(name)
+            .and_then(|children| children.pop())
+            .ok_or(Error::EndOfSequence)?;
 
-        if let None = asdf {
-            return Err(Error::Test);
-        }
-        
-        let bbbb = asdf.unwrap();
-        self.parent_stack.push(bbbb);
+        self.parent_stack.push(next);
 
         // Looked at Postcard, thanks
         let temp = visitor.visit_seq(StructAccess {
             de: self,
             fields,
             index: 0,
-            empty: false,
         });
 
-        self.parent_stack.pop();
+        // If we completely parsed a struct, clean it up from our TextTree
+        let t = self
+            .parent_stack
+            .pop()
+            .expect("Failed to remove the parent we just added I guess");
+        if t.is_empty() {
+            self.parent_stack
+                .last_mut()
+                .expect("parent_stack_empty")
+                .children_nodes
+                .remove(name);
+        } else {
+            println!("OOOOOOOOO\n{t:#?}\nOOOOOOOOOOO");
+            // panic!()
+            // self.parent_stack.last_mut().unwrap().children_nodes.get_mut(name).unwrap().push(t);
+        }
 
         temp
     }
@@ -346,25 +264,13 @@ impl<'de, 'a> de::SeqAccess<'de> for SeqAcess<'a, 'de> {
     where
         T: de::DeserializeSeed<'de>,
     {
-        // match (
-        //     self.de.current_values.as_ref(),
-        //     self.de.current_children.as_ref(),
-        // ) {
-        //     // (Some(values), _) if values.len() == 0 => return Ok(None),
-        //     // (_, Some(children)) if children.len() == 0 => return Ok(None),
-        //     (None, None) => return Ok(None),
-        //     _ => (),
-        // }
-
-        if self.de.parent_stack.last().unwrap().children_nodes.len() == 0 && self.de.parent_stack.last().unwrap().key_value_pairs.len() == 0 {
-            return Ok(None)
-        }
         let temp = seed.deserialize(&mut *self.de);
 
-        if let Err(Error::Test) = temp {
-            return Ok(None)
+        // I don't know if this is good practice but is the best I could think of
+        if let Err(Error::EndOfSequence) = temp {
+            return Ok(None);
         }
-        
+
         temp.map(Some)
     }
 }
@@ -373,7 +279,6 @@ struct StructAccess<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     fields: &'static [&'static str],
     index: usize,
-    empty: bool,
 }
 
 impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
@@ -383,9 +288,6 @@ impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
     where
         T: de::DeserializeSeed<'de>,
     {
-        if self.empty {
-            return Ok(None);
-        }
         if self.index >= self.fields.len() {
             return Ok(None);
         }
@@ -399,14 +301,6 @@ impl<'de, 'a> de::SeqAccess<'de> for StructAccess<'a, 'de> {
             .as_mut()
             .unwrap()
             .key_value_pairs
-            .remove(current_field);
-        self.de.current_children = self
-            .de
-            .parent_stack
-            .last_mut()
-            .as_mut()
-            .unwrap()
-            .children_nodes
             .remove(current_field);
 
         self.index += 1;

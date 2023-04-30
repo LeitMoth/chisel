@@ -1,10 +1,11 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
+use super::vmf::EditorProperties;
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "group")]
 pub struct Group {
     pub id: u32,
-    #[serde(rename = "")]
     pub prop: EditorProperties,
 }
 
@@ -26,19 +27,16 @@ pub struct World {
     pub detail_material: String,
     #[serde(rename = "maxblobcount")]
     pub max_blob_count: u32,
-    #[serde(rename = "")]
+    #[serde(rename = "solid")]
     pub solids: Vec<Solid>,
-    // #[serde(rename = "")]
-    // pub hidden: Hidden<Solid>,
-    // #[serde(rename = "")]
-    // pub group: Vec<Group>,
+    pub hidden: Vec<HiddenSolid>,
+    pub group: Vec<Group>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "hidden")]
-pub struct Hidden<T> {
-    #[serde(rename = "")]
-    pub contents: Vec<T>,
+pub struct HiddenSolid {
+    pub solid: Solid,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,30 +48,19 @@ pub struct Solid {
     pub editor: EditorProperties,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename = "editor")]
-pub struct EditorProperties {
-    pub color: String,
-    #[serde(rename = "visgroupshown")]
-    pub visgroup_shown: u32,
-    #[serde(rename = "visgroupautoshown")]
-    pub visgroup_auto_shown: u32,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "side")]
 pub struct Side {
     pub id: u32,
     pub plane: Plane,
-    // pub plane: String,
     pub material: String,
-    //TODO remames on these
     // u_axis: ([f32;4], f32),
     // v_axis: ([f32;4], f32),
     pub uaxis: String,
     pub vaxis: String,
-    // rotation: f32,
-    pub rotation: String,
+    pub rotation: f32,
+    // pub rotation: String,
     #[serde(rename = "lightmapscale")]
     pub lightmap_scale: u32,
     pub smoothing_groups: u32,
@@ -86,9 +73,9 @@ pub struct Plane {
 
 #[derive(Debug)]
 pub struct Point {
-    pub x: i32,
-    pub y: i32,
-    pub z: i32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 struct PlaneVisitor;
@@ -117,9 +104,9 @@ impl<'de> Visitor<'de> for PlaneVisitor {
 
         let mut p = Plane {
             points: [
-                Point { x: 0, y: 0, z: 0 },
-                Point { x: 0, y: 0, z: 0 },
-                Point { x: 0, y: 0, z: 0 },
+                Point { x: 0.0, y: 0.0, z: 0.0 },
+                Point { x: 0.0, y: 0.0, z: 0.0 },
+                Point { x: 0.0, y: 0.0, z: 0.0 },
             ],
         };
 

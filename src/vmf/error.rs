@@ -17,7 +17,7 @@ pub enum Error {
     ExpectedFieldName,
     StructNameChanged,
     ExpectedClosingQuote,
-    Test,
+    EndOfSequence,
 }
 
 impl ser::Error for Error {
@@ -46,7 +46,7 @@ impl Display for Error {
             Error::ExpectedFieldName => todo!(),
             Error::StructNameChanged => todo!(),
             Error::ExpectedClosingQuote => todo!(),
-            Error::Test => todo!(),
+            Error::EndOfSequence => todo!(),
         }
     }
 }

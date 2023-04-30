@@ -5,6 +5,12 @@ pub struct TextTree<'a> {
     pub key_value_pairs: HashMap<&'a str, Vec<&'a str>>,
     pub children_nodes: HashMap<&'a str, Vec<TextTree<'a>>>,
 }
+
+impl TextTree<'_> {
+    pub fn is_empty(&self) -> bool {
+        self.key_value_pairs.is_empty() && self.children_nodes.is_empty()
+    }
+}
 pub struct BasicParser<'a> {
     pub input: &'a str,
 }
