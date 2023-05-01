@@ -4,7 +4,7 @@ use std::fmt::Debug;
 #[derive(Clone, Debug)]
 pub struct GenericNode {
     pub key_value_pairs: HashMap<String, Vec<String>>,
-    pub children_nodes: HashMap<String, Vec<Box<GenericNode>>>,
+    pub children_nodes: HashMap<String, Vec<GenericNode>>,
 }
 
 impl GenericNode {
@@ -17,11 +17,11 @@ impl GenericNode {
             .insert(key.to_string(), vec![value.to_string()]);
     }
 
-    pub fn set_child(&mut self, name: impl ToString, child: Box<GenericNode>) {
+    pub fn set_child(&mut self, name: impl ToString, child: GenericNode) {
         self.set_children(name, vec![child]);
     }
 
-    pub fn set_children(&mut self, name: impl ToString, children: Vec<Box<GenericNode>>) {
+    pub fn set_children(&mut self, name: impl ToString, children: Vec<GenericNode>) {
         self.children_nodes
             .insert(name.to_string(), children);
     }
@@ -134,7 +134,7 @@ impl BasicParser<'_> {
                     node.children_nodes
                         .get_mut(&name)
                         .ok_or("bruh")?
-                        .push(Box::new(self.read_tree()?));
+                        .push(self.read_tree()?);
                 }
                 '}' => {
                     self.input = &self.input[1..];

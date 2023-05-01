@@ -24,13 +24,13 @@ impl Vmf {
         }
     }
 
-    pub fn as_generic(&self) -> Box<GenericNode> {
+    pub fn as_generic(&self) -> GenericNode {
         let mut g = self.rest.clone();
 
         g.set_child("versioninfo", self.version_info.as_generic());
         g.set_child("world",self.world.as_generic());
 
-        Box::new(g)
+        g
     }
 }
 
@@ -51,7 +51,7 @@ I need to rename a lot of things, and find out if I can do the macro thing
 */
 
 impl VersionInfo {
-    fn parse(g: Box<GenericNode>) -> Self {
+    fn parse(g: GenericNode) -> Self {
         Self {
             editor_version: g.get_value("editorversion").parse().unwrap(),
             editor_build: g.get_value("editorbuild").parse().unwrap(),
@@ -61,7 +61,7 @@ impl VersionInfo {
         }
     }
 
-    fn as_generic(&self) -> Box<GenericNode> {
+    fn as_generic(&self) -> GenericNode {
         let mut g = GenericNode::new();
 
         g.set_value("editorversion", self.editor_version);
@@ -70,18 +70,18 @@ impl VersionInfo {
         g.set_value("formatversion", self.format_version);
         g.set_value("prefab", self.prefab);
 
-        Box::new(g)
+g
     }
 }
 
 #[derive(Debug)]
 struct World {
     solids: Vec<Solid>,
-    rest: Box<GenericNode>,
+    rest: GenericNode,
 }
 
 impl World {
-    fn parse(mut g: Box<GenericNode>) -> Self {
+    fn parse(mut g: GenericNode) -> Self {
         let solids = g.children_nodes.remove("solid").unwrap();
         let solids = solids
             .into_iter()
@@ -89,7 +89,7 @@ impl World {
             .collect();
         Self { solids, rest: g }
     }
-    fn as_generic(&self) -> Box<GenericNode> {
+    fn as_generic(&self) -> GenericNode {
         let mut g = self.rest.clone();
 
         g.set_children("solid", self.solids.iter().map(|s| s.as_generic()).collect());
@@ -102,11 +102,11 @@ impl World {
 struct Solid {
     id: u32,
     sides: Vec<Side>,
-    rest: Box<GenericNode>,
+    rest: GenericNode,
 }
 
 impl Solid {
-    fn parse(mut g: Box<GenericNode>) -> Self {
+    fn parse(mut g: GenericNode) -> Self {
         let sides = g
             .children_nodes
             .remove("side")
@@ -125,7 +125,7 @@ impl Solid {
         Self { id, sides, rest: g }
     }
 
-    fn as_generic(&self) -> Box<GenericNode> {
+    fn as_generic(&self) -> GenericNode {
         let mut g = self.rest.clone();
 
         g.set_value("id", self.id);
@@ -145,11 +145,11 @@ struct Side {
     pub rotation: f32,
     pub lightmap_scale: u32,
     pub smoothing_groups: u32,
-    pub rest: Box<GenericNode>,
+    pub rest: GenericNode,
 }
 
 impl Side {
-    fn parse(mut g: Box<GenericNode>) -> Self {
+    fn parse(mut g: GenericNode) -> Self {
         let id = g
             .key_value_pairs
             .remove("id")
@@ -196,7 +196,7 @@ impl Side {
         }
     }
 
-    fn as_generic(&self) -> Box<GenericNode> {
+    fn as_generic(&self) -> GenericNode {
         let mut g = self.rest.clone();
 
         g.set_value("id", self.id);
