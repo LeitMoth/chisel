@@ -1,6 +1,6 @@
-use bevy::{prelude::*, render::camera::Projection, window::PrimaryWindow};
+use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
-use ui::ui::{ChiselUIPlugin, OccupiedScreenSpace};
+use ui::ChiselUIPlugin;
 use views::split::{setup_system, update_camera_transform_system};
 
 mod ui;

@@ -1,11 +1,9 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig, prelude::*, render::camera::Viewport,
+    window::PrimaryWindow,
+};
 
-use crate::ui::ui::OccupiedScreenSpace;
-
-const CAMERA_TARGET: Vec3 = Vec3::ZERO;
-
-#[derive(Resource, Deref, DerefMut)]
-pub struct OriginalCameraTransform(Transform);
+use crate::ui::OccupiedScreenSpace;
 
 pub fn setup_system(
     mut commands: Commands,
@@ -36,42 +34,84 @@ pub fn setup_system(
         ..Default::default()
     });
 
-    let camera_pos = Vec3::new(-2.0, 2.5, 5.0);
-    let camera_transform =
-        Transform::from_translation(camera_pos).looking_at(CAMERA_TARGET, Vec3::Y);
-    commands.insert_resource(OriginalCameraTransform(camera_transform));
+    // Left Camera
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(0.0, 3.0, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
+            ..default()
+        },
+        LeftCamera,
+    ));
 
-    commands.spawn(Camera3dBundle {
-        transform: camera_transform,
-        ..Default::default()
-    });
+    // Right Camera
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(0.0, 3.0, 1.0).looking_at(Vec3::ZERO, Vec3::Y),
+            camera: Camera {
+                // Renders the right camera after the left camera, which has a default priority of 0
+                order: 1,
+                ..default()
+            },
+            camera_3d: Camera3d {
+                // don't clear on the second camera because the first camera already cleared the window
+                clear_color: ClearColorConfig::None,
+                ..default()
+            },
+            ..default()
+        },
+        RightCamera,
+    ));
 }
+
+#[derive(Component)]
+pub struct LeftCamera;
+
+#[derive(Component)]
+pub struct RightCamera;
 
 pub fn update_camera_transform_system(
     occupied_screen_space: Res<OccupiedScreenSpace>,
-    original_camera_transform: Res<OriginalCameraTransform>,
     windows: Query<&Window, With<PrimaryWindow>>,
-    mut camera_query: Query<(&Projection, &mut Transform)>,
+    mut left_camera: Query<&mut Camera, (With<LeftCamera>, Without<RightCamera>)>,
+    mut right_camera: Query<&mut Camera, With<RightCamera>>,
 ) {
-    let (camera_projection, mut transform) = match camera_query.get_single_mut() {
-        Ok((Projection::Perspective(projection), transform)) => (projection, transform),
-        _ => unreachable!(),
-    };
-
-    let distance_to_target = (CAMERA_TARGET - original_camera_transform.translation).length();
-    let frustum_height = 2.0 * distance_to_target * (camera_projection.fov * 0.5).tan();
-    let frustum_width = frustum_height * camera_projection.aspect_ratio;
-
     let window = windows.single();
 
-    let left_taken = occupied_screen_space.left / window.width();
-    let right_taken = occupied_screen_space.right / window.width();
-    let top_taken = occupied_screen_space.top / window.height();
-    let bottom_taken = occupied_screen_space.bottom / window.height();
-    transform.translation = original_camera_transform.translation
-        + transform.rotation.mul_vec3(Vec3::new(
-            (right_taken - left_taken) * frustum_width * 0.5,
-            (top_taken - bottom_taken) * frustum_height * 0.5,
-            0.0,
-        ));
+    /*
+    3D      top (x/y)
+
+    front (y/z) side (x/z)
+    
+    
+     */
+
+    let left = occupied_screen_space.left as u32;
+    let right = occupied_screen_space.right as u32;
+    let top = occupied_screen_space.top as u32;
+    let bottom = occupied_screen_space.bottom as u32;
+
+    // Ensure that each viewport has eat least one pixel of width.
+    // Zero-width viewports cause a crash (with vulkan at least)
+    let dx = window.physical_width().saturating_sub(left + right).max(2);
+    let dy = window.physical_height().saturating_sub(bottom + top).max(2);
+
+    let quarter_x = dx / 2;
+    let quarter_y = dy / 2;
+
+    let quarter_size = UVec2::new(quarter_x, quarter_y);
+    let topleft = UVec2::new(left,top);
+
+    let mut left_camera = left_camera.single_mut();
+    left_camera.viewport = Some(Viewport {
+        physical_position: topleft,
+        physical_size: quarter_size,
+        ..default()
+    });
+
+    let mut right_camera = right_camera.single_mut();
+    right_camera.viewport = Some(Viewport {
+        physical_position: topleft + quarter_size,
+        physical_size: quarter_size,
+        ..default()
+    });
 }
