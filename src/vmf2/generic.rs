@@ -81,68 +81,69 @@ impl GenericNode {
             children_nodes: HashMap::new(),
         }
     }
+
+    pub fn parse(input: &str) -> Result<GenericNode, String> {
+        let tmp = read_tree(input)?;
+
+        if tmp.leftover.len() != 0 {
+            Err("Leftover input: ".to_owned() + tmp.leftover)
+        } else {
+            Ok(tmp.subtree)
+        }
+    }
 }
 
-pub struct BasicParser<'a> {
-    pub input: &'a str,
+
+struct ParseStep<'a> {
+    subtree: GenericNode,
+    leftover: &'a str,
 }
 
-impl BasicParser<'_> {
-    pub fn read_tree(&mut self) -> Result<GenericNode, String> {
-        let mut node = GenericNode {
-            key_value_pairs: HashMap::new(),
-            children_nodes: HashMap::new(),
-        };
+fn read_tree(mut input: &str) -> Result<ParseStep, String> {
+    let mut node = GenericNode::new();
 
-        loop {
-            self.input = self.input.trim();
-            let c = self.input.chars().nth(0).ok_or("EOF");
-            if let Err(e) = c {
+    loop {
+        input = input.trim();
+
+        match input.chars().next() {
+            None => break,
+            Some('"') => {
+                // Not extremely efficient. I think I could unpack into a tuple with a crate called "itertools"
+                let split: Vec<&str> = input.splitn(5, "\"").collect();
+
+                let key = split[1].to_owned();
+                let value = split[3].to_owned();
+
+                match node.key_value_pairs.get_mut(&key) {
+                    Some(values) => values.push(value),
+                    None => {
+                        node.key_value_pairs.insert(key, vec![value]);
+                    }
+                }
+
+                input = split[4];
+            }
+            Some('a'..='z' | 'A'..='Z') => {
+                let (name, rest) = input.split_once("{").ok_or("Expected {")?;
+                let name = name.trim();
+
+                let ParseStep {subtree, leftover } = read_tree(rest)?;
+                input = leftover;
+
+                match node.children_nodes.get_mut(name) {
+                    Some(children) => children.push(subtree),
+                    None => {
+                        node.children_nodes.insert(name.to_owned(), vec![subtree]);
+                    }
+                }
+            }
+            Some('}') => {
+                input = &input[1..];
                 break;
             }
-
-            let n = self.input.len();
-            println!("{}", n);
-
-            match c? {
-                '"' => {
-                    let split = self.input.splitn(5, "\"");
-
-                    let split: Vec<&str> = split.collect();
-
-                    let key = split[1].to_owned();
-                    let value = split[3].to_owned();
-
-                    if !node.key_value_pairs.contains_key(&key) {
-                        node.key_value_pairs.insert(key.clone(), Vec::new());
-                    }
-                    node.key_value_pairs
-                        .get_mut(&key)
-                        .expect("Didn't we just make one?")
-                        .push(value);
-
-                    self.input = split[4];
-                }
-                'a'..='z' | 'A'..='Z' => {
-                    let (name, rest) = self.input.split_once("{").ok_or("Expected {")?;
-                    self.input = rest;
-                    let name = name.trim().to_owned();
-                    if !node.children_nodes.contains_key(&name) {
-                        node.children_nodes.insert(name.clone(), Vec::new());
-                    }
-                    node.children_nodes
-                        .get_mut(&name)
-                        .ok_or("bruh")?
-                        .push(self.read_tree()?);
-                }
-                '}' => {
-                    self.input = &self.input[1..];
-                    break;
-                }
-                _ => unreachable!(),
-            }
+            _ => unreachable!(),
         }
-
-        Ok(node)
     }
+
+    Ok(ParseStep{ subtree: node, leftover: input })
 }

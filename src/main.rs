@@ -3,18 +3,17 @@ use std::{
     io::{BufReader, BufWriter, Read, Write},
 };
 
-use crate::vmf2::{generic::BasicParser, vmf::Vmf};
+use crate::vmf2::{vmf::Vmf, generic::GenericNode};
 
 mod vmf2;
 
 fn main() -> std::io::Result<()> {
     let mut two_cube = String::new();
-    BufReader::new(File::open("mp_coop_doors.vmf")?).read_to_string(&mut two_cube)?;
+    BufReader::new(File::open("testing/mp_coop_doors.vmf")?).read_to_string(&mut two_cube)?;
 
-    let mut p: BasicParser = BasicParser { input: &two_cube };
+    let root = GenericNode::parse(&two_cube).unwrap();
 
-    let root = p.read_tree().unwrap();
-    let root = Vmf::parse(root);
+    let root: Vmf = Vmf::parse(root);
 
     println!("{}", root.as_generic().to_string());
 
@@ -22,7 +21,7 @@ fn main() -> std::io::Result<()> {
 
     println!("{root:#?}");
 
-    BufWriter::new(File::create("coop_TEST.vmf")?)
+    BufWriter::new(File::create("testing/coop_TEST.vmf")?)
         .write_all(root.as_generic().to_string().as_bytes())?;
 
     Ok(())
