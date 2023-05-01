@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::generic::{GenericNode, ToGeneric};
+use super::generic::GenericNode;
 
 #[derive(Debug)]
 pub struct Vmf {
@@ -14,8 +14,8 @@ impl Vmf {
         let version_info = g.children_nodes.remove("versioninfo").unwrap().pop().unwrap();
         let world = g.children_nodes.remove("world").unwrap().pop().unwrap();
 
-        let version_info = VersionInfo::parse(version_info.as_generic());
-        let world = World::parse(world.as_generic());
+        let version_info = VersionInfo::parse(version_info);
+        let world = World::parse(world);
 
         Self {
             version_info,
@@ -23,10 +23,8 @@ impl Vmf {
             rest: g,
         }
     }
-}
 
-impl ToGeneric for Vmf {
-    fn as_generic(&self) -> Box<GenericNode> {
+    pub fn as_generic(&self) -> Box<GenericNode> {
         let mut g = self.rest.clone();
 
         g.set_child("versioninfo", self.version_info.as_generic());
@@ -52,7 +50,17 @@ the parse and as_generic look very similar.
 I need to rename a lot of things, and find out if I can do the macro thing
 */
 
-impl ToGeneric for VersionInfo {
+impl VersionInfo {
+    fn parse(g: Box<GenericNode>) -> Self {
+        Self {
+            editor_version: g.get_value("editorversion").parse().unwrap(),
+            editor_build: g.get_value("editorbuild").parse().unwrap(),
+            map_version: g.get_value("mapversion").parse().unwrap(),
+            format_version: g.get_value("formatversion").parse().unwrap(),
+            prefab: g.get_value("prefab").parse().unwrap(),
+        }
+    }
+
     fn as_generic(&self) -> Box<GenericNode> {
         let mut g = GenericNode::new();
 
@@ -63,18 +71,6 @@ impl ToGeneric for VersionInfo {
         g.set_value("prefab", self.prefab);
 
         Box::new(g)
-    }
-}
-
-impl VersionInfo {
-    fn parse(g: Box<GenericNode>) -> Self {
-        Self {
-            editor_version: g.get_value("editorversion").parse().unwrap(),
-            editor_build: g.get_value("editorbuild").parse().unwrap(),
-            map_version: g.get_value("mapversion").parse().unwrap(),
-            format_version: g.get_value("formatversion").parse().unwrap(),
-            prefab: g.get_value("prefab").parse().unwrap(),
-        }
     }
 }
 
@@ -89,24 +85,14 @@ impl World {
         let solids = g.children_nodes.remove("solid").unwrap();
         let solids = solids
             .into_iter()
-            .map(|t| Solid::parse(t.as_generic()))
+            .map(Solid::parse)
             .collect();
         Self { solids, rest: g }
     }
-}
-
-// impl FromIterator<
-
-impl ToGeneric for World {
     fn as_generic(&self) -> Box<GenericNode> {
         let mut g = self.rest.clone();
-        let solids = self.solids.iter().map(|s| s.as_generic());
-        let mut gsolids = vec![];
-        for s in solids {
-            gsolids.push(s)
-        }
 
-        // g.set_children("solid", gsolids);
+        g.set_children("solid", self.solids.iter().map(|s| s.as_generic()).collect());
 
         g
     }
@@ -126,7 +112,7 @@ impl Solid {
             .remove("side")
             .unwrap()
             .into_iter()
-            .map(|s| Side::parse(s.as_generic()))
+            .map(Side::parse)
             .collect();
         let id = g
             .key_value_pairs
@@ -138,14 +124,12 @@ impl Solid {
             .unwrap();
         Self { id, sides, rest: g }
     }
-}
 
-impl ToGeneric for Solid {
     fn as_generic(&self) -> Box<GenericNode> {
         let mut g = self.rest.clone();
 
         g.set_value("id", self.id);
-        // g.set_children("solid", self.sides.iter().map(|s| s.as_generic()).collect());
+        g.set_children("side", self.sides.iter().map(|s| s.as_generic()).collect());
 
         g
     }
@@ -211,14 +195,18 @@ impl Side {
             rest: g
         }
     }
-}
 
-impl ToGeneric for Side {
     fn as_generic(&self) -> Box<GenericNode> {
         let mut g = self.rest.clone();
 
         g.set_value("id", self.id);
-        // g.set_child("solid", self.sides.iter().map(|s| s.as_generic()));
+        g.set_value("plane", self.plane.to_string());
+        g.set_value("material", &self.material);
+        g.set_value("uaxis", self.u_axis.to_string());
+        g.set_value("vaxis", self.v_axis.to_string());
+        g.set_value("rotation", self.rotation);
+        g.set_value("lightmapscale", self.lightmap_scale);
+        g.set_value("smoothing_groups", self.smoothing_groups);
 
         g
     }
@@ -238,6 +226,22 @@ impl UV {
             tmp.0[i] = coords.next().unwrap().parse().unwrap();
         }
         tmp.1 = lr.next().unwrap().trim().parse().unwrap();
+
+        tmp
+    }
+
+    fn to_string(&self) -> String {
+        let mut tmp = String::new();
+        tmp += "[";
+        tmp += &self.0[0].to_string();
+        tmp += " ";
+        tmp += &self.0[1].to_string();
+        tmp += " ";
+        tmp += &self.0[2].to_string();
+        tmp += " ";
+        tmp += &self.0[3].to_string();
+        tmp += "] ";
+        tmp += &self.1.to_string();
 
         tmp
     }
@@ -289,6 +293,25 @@ impl Plane {
         }
 
         p
+    }
+
+    fn to_string(&self) -> String {
+        let mut tmp = String::new();
+        for (i, point) in self.points.iter().enumerate() {
+            tmp += "(";
+            tmp += &point.x.to_string();
+            tmp += " ";
+            tmp += &point.y.to_string();
+            tmp += " ";
+            tmp += &point.z.to_string();
+            tmp += ")";
+
+            if i < self.points.len() - 1 {
+                tmp += " "
+            }
+        }
+
+        tmp
     }
 }
 

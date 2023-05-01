@@ -1,35 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-pub trait ToGeneric {
-    fn as_generic(&self) -> Box<GenericNode>;
-}
-
 #[derive(Clone, Debug)]
 pub struct GenericNode {
     pub key_value_pairs: HashMap<String, Vec<String>>,
-    pub children_nodes: HashMap<String, Vec<Box<dyn ToGeneric>>>,
-}
-
-impl Clone for Box<dyn ToGeneric> {
-    fn clone(&self) -> Self {
-        Box::new(GenericNode {
-            key_value_pairs: self.as_generic().key_value_pairs.clone(),
-            children_nodes: self.as_generic().children_nodes.clone(),
-        })
-    }
-}
-
-impl Debug for Box<dyn ToGeneric> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_generic().fmt(f)
-    }
-}
-
-impl ToGeneric for GenericNode {
-    fn as_generic(&self) -> Box<GenericNode> {
-        Box::new(self.clone())
-    }
+    pub children_nodes: HashMap<String, Vec<Box<GenericNode>>>,
 }
 
 impl GenericNode {
@@ -42,13 +17,11 @@ impl GenericNode {
             .insert(key.to_string(), vec![value.to_string()]);
     }
 
-    pub fn set_child(&mut self, name: impl ToString, child: Box<dyn ToGeneric>) {
+    pub fn set_child(&mut self, name: impl ToString, child: Box<GenericNode>) {
         self.set_children(name, vec![child]);
-        // self.children_nodes
-        //     .insert(name.to_string(), vec![child.as_generic()]);
     }
 
-    pub fn set_children(&mut self, name: impl ToString, children: Vec<Box<dyn ToGeneric>>) {
+    pub fn set_children(&mut self, name: impl ToString, children: Vec<Box<GenericNode>>) {
         self.children_nodes
             .insert(name.to_string(), children);
     }
@@ -93,7 +66,7 @@ impl GenericNode {
                 indent!();
                 buf += "{";
                 crlf!();
-                buf += &node.as_generic().to_text(indent_level + 1);
+                buf += &node.to_text(indent_level + 1);
                 indent!();
                 buf += "}";
                 crlf!();

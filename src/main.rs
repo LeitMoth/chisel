@@ -3,24 +3,24 @@ use std::{
     io::{BufReader, BufWriter, Read, Write},
 };
 
-use serde::{Deserialize, Serialize};
+// use serde::{Deserialize, Serialize};
 
 use crate::vmf2::{
-    generic::{BasicParser, ToGeneric},
+    generic::BasicParser,
     vmf::Vmf,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename = "solid")]
-struct TestSolid {
-    sides: Vec<TestSide>,
-}
+// #[derive(Debug, Serialize, Deserialize)]
+// #[serde(rename = "solid")]
+// struct TestSolid {
+//     sides: Vec<TestSide>,
+// }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename = "side")]
-struct TestSide {
-    height: u32,
-}
+// #[derive(Debug, Serialize, Deserialize)]
+// #[serde(rename = "side")]
+// struct TestSide {
+//     height: u32,
+// }
 
 // mod vmf;
 mod vmf2;
