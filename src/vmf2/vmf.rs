@@ -2,6 +2,15 @@ use std::fmt::Debug;
 
 use super::generic::GenericNode;
 
+/*
+TODO:
+
+Hidden Solids
+Entities
+Hidden Entities
+
+*/
+
 #[derive(Debug)]
 pub struct Vmf {
     version_info: VersionInfo,
