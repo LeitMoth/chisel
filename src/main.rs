@@ -5,6 +5,11 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+use crate::vmf2::{
+    generic::{BasicParser, ToGeneric},
+    vmf::Vmf,
+};
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "solid")]
 struct TestSolid {
@@ -17,33 +22,33 @@ struct TestSide {
     height: u32,
 }
 
-mod vmf;
-// mod vmf2;
+// mod vmf;
+mod vmf2;
 
-use crate::vmf::vmf::{VersionInfo, VisGroups, Vmf};
+// use crate::vmf::vmf::{VersionInfo, VisGroups, Vmf};
 
-/*
 fn main() -> std::io::Result<()> {
     let mut two_cube = String::new();
     BufReader::new(File::open("mp_coop_doors.vmf")?).read_to_string(&mut two_cube)?;
 
-
-    let mut p = BasicParser{
-        input: &two_cube
-    };
+    let mut p = BasicParser { input: &two_cube };
 
     let root = p.read_tree().unwrap();
     let root = Vmf::parse(root);
 
     println!("{}", root.as_generic().to_string());
 
+    println!("8888888888888888888888");
+
+    println!("{root:#?}");
+
     BufWriter::new(File::create("coop_TEST.vmf")?)
         .write_all(root.as_generic().to_string().as_bytes())?;
 
     Ok(())
 }
-*/
 
+/*
 fn main() -> std::io::Result<()> {
     // let vis = VisGroups { groups: Vec::new() };
     // let vis_string = &vmf::ser::ser::to_string(&vis).unwrap();
@@ -128,3 +133,5 @@ fn main() -> std::io::Result<()> {
 
     Ok(())
 }
+
+*/

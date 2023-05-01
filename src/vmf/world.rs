@@ -48,7 +48,6 @@ pub struct Solid {
     pub editor: EditorProperties,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "side")]
 pub struct Side {

@@ -1,219 +1,43 @@
-use std::{collections::HashMap, io::BufWriter, fmt::{Display, Debug}, sync::Mutex};
+use std::fmt::Debug;
 
-pub trait ToGeneric {
-    fn as_generic(&self) -> &GenericNode;
-}
+use super::generic::{GenericNode, ToGeneric};
 
-#[derive(Clone)]
-pub struct GenericNode {
-    key_value_pairs: HashMap<String, Vec<String>>,
-    children_nodes: HashMap<String, Vec<Box<dyn ToGeneric>>>,
-}
-
-impl Clone for Box<dyn ToGeneric> {
-    fn clone(&self) -> Self {
-        Box::new(GenericNode { 
-            key_value_pairs: self.as_generic().key_value_pairs.clone(),
-            children_nodes: self.as_generic().children_nodes.clone(),
-        })
-    }
-}
-
-impl ToGeneric for GenericNode {
-    fn as_generic(&self) -> &GenericNode {
-       self
-    }
-}
-
-impl GenericNode {
-    fn get_value(&self, key: &str) -> &String {
-        self.key_value_pairs.get(key).unwrap().get(0).unwrap()
-    }
-
-    fn set_value(&mut self, key: impl ToString, value: impl ToString) {
-        self.key_value_pairs.insert(key.to_string(), vec![value.to_string()]);
-    }
-
-    fn set_child(&mut self, name: impl ToString, child: &impl ToGeneric) {
-        self.children_nodes.insert(name.to_string(), vec![Box::new(child.as_generic().clone())]);
-    }
-
-    pub fn to_string(&self) -> String {
-        self.to_text(0)
-    }
-
-    fn to_text(&self, indent_level: u32) -> String {
-        let mut buf = String::new();
-
-        macro_rules! crlf {
-            () => {
-                buf += "\r\n";
-            };
-        }
-        macro_rules! indent {
-            () => {
-                for _ in 0..indent_level {
-                    buf += "\t"
-                }
-            };
-        }
-
-        for (key, values) in &self.key_value_pairs {
-            for value in values {
-                indent!();
-                buf += "\"";
-                buf += &key;
-                buf += "\" \"";
-                buf += &value;
-                buf += "\"";
-                crlf!();
-            }
-
-        }
-
-        for (name, nodes) in &self.children_nodes {
-
-            for node in nodes {
-                indent!();
-                buf += &name;
-                crlf!();
-                indent!();
-                buf += "{";
-                crlf!();
-                buf += &node.as_generic().to_text(indent_level + 1);
-                indent!();
-                buf += "}";
-                crlf!();
-            }
-        }
-
-        buf
-    }
-
-    fn new() -> Self {
-        Self {
-            key_value_pairs: HashMap::new(),
-            children_nodes: HashMap::new()
-        }
-    }
-
-}
-
-pub struct BasicParser<'a> {
-   pub input: &'a str,
-}
-
-impl BasicParser<'_> {
-    pub fn read_tree(&mut self) -> Result<GenericNode, String> {
-        let mut node = GenericNode {
-            key_value_pairs: HashMap::new(),
-            children_nodes: HashMap::new(),
-        };
-
-        loop {
-            self.input = self.input.trim();
-            let c = self.input.chars().nth(0).ok_or("EOF");
-            if let Err(e) = c {
-                break;
-            }
-
-            let n = self.input.len();
-            println!("{}", n);
-
-            match c? {
-                '"' => {
-                    let split = self.input.splitn(5, "\"");
-
-                    let split: Vec<&str> = split.collect();
-
-                    let key = split[1].to_owned();
-                    let value = split[3].to_owned();
-
-                    if !node.key_value_pairs.contains_key(&key) {
-                        node.key_value_pairs.insert(key.clone(), Vec::new());
-                    }
-                    node.key_value_pairs.get_mut(&key).expect("Didn't we just make one?").push(value);
-
-                    self.input = split[4];
-                }
-                'a'..='z' | 'A'..='Z' => {
-                    let (name, rest) = self.input.split_once("{").ok_or("Expected {")?;
-                    self.input = rest;
-                    let name = name.trim().to_owned();
-                    if !node.children_nodes.contains_key(&name) {
-                        node.children_nodes.insert(name.clone(), Vec::new());
-                    }
-                    node.children_nodes
-                        .get_mut(&name)
-                        .ok_or("bruh")?
-                        .push(Box::new(self.read_tree()?));
-                }
-                '}' => {
-                    self.input = &self.input[1..];
-                    break
-                }
-                _ => unreachable!(),
-            }
-        }
-
-        Ok(node)
-    }
-}
-
-
-struct MaybeDirty<T> {
-    dirty: bool,
-    data: T,
-}
-
-impl <T> MaybeDirty<T> {
-    fn get(&mut self, update: &mut impl FnMut(&mut T)) -> &T {
-        if self.dirty {
-            update(&mut self.data);
-            &self.data
-        } else {
-            &self.data
-        }
-    }
-
-    fn new(t: T) -> Self {
-        Self {
-            dirty: true,
-            data: t,
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct Vmf {
-    generic_rep: MaybeDirty<GenericNode>,
-    rest: GenericNode,
     version_info: VersionInfo,
+    world: World,
+    rest: GenericNode,
 }
 
 impl Vmf {
-    fn update_generic(&self, g: &mut GenericNode) {
-        g.set_child("versioninfo", &self.version_info);
-    }
-
     pub fn parse(mut g: GenericNode) -> Self {
-        let v = g.children_nodes.remove("version_info").unwrap();
+        let version_info = g.children_nodes.remove("versioninfo").unwrap().pop().unwrap();
+        let world = g.children_nodes.remove("world").unwrap().pop().unwrap();
+
+        let version_info = VersionInfo::parse(version_info.as_generic());
+        let world = World::parse(world.as_generic());
+
         Self {
-            generic_rep: MaybeDirty::new(GenericNode::new()),
+            version_info,
+            world,
             rest: g,
-            version_info: VersionInfo::parse(v[0].as_generic())
         }
     }
 }
 
 impl ToGeneric for Vmf {
-    fn as_generic(&self) -> &GenericNode {
-        self.generic_rep.get(&mut |g| self.update_generic(g))
+    fn as_generic(&self) -> Box<GenericNode> {
+        let mut g = self.rest.clone();
+
+        g.set_child("versioninfo", self.version_info.as_generic());
+        g.set_child("world",self.world.as_generic());
+
+        Box::new(g)
     }
 }
 
+#[derive(Debug)]
 pub struct VersionInfo {
-    generic_rep: MaybeDirty<GenericNode>,
-
     pub editor_version: u32,
     pub editor_build: u32,
     pub map_version: u32,
@@ -221,23 +45,30 @@ pub struct VersionInfo {
     pub prefab: u32,
 }
 
+/*
+Maybe I can figure out some sort of macro that maps these easier?
+the parse and as_generic look very similar.
+
+I need to rename a lot of things, and find out if I can do the macro thing
+*/
+
 impl ToGeneric for VersionInfo {
-    fn as_generic(&self) -> &GenericNode {
-        self.generic_rep.get(&mut |g| {
-            g.set_value("editorversion", self.editor_version);
-            g.set_value("editorbuild", self.editor_build);
-            g.set_value("mapversion", self.map_version);
-            g.set_value("formatversion", self.format_version);
-            g.set_value("prefab", self.prefab);
-        })
+    fn as_generic(&self) -> Box<GenericNode> {
+        let mut g = GenericNode::new();
+
+        g.set_value("editorversion", self.editor_version);
+        g.set_value("editorbuild", self.editor_build);
+        g.set_value("mapversion", self.map_version);
+        g.set_value("formatversion", self.format_version);
+        g.set_value("prefab", self.prefab);
+
+        Box::new(g)
     }
 }
 
-
 impl VersionInfo {
-    fn parse(g: &GenericNode) -> Self {
+    fn parse(g: Box<GenericNode>) -> Self {
         Self {
-            generic_rep: MaybeDirty::new(GenericNode::new()),
             editor_version: g.get_value("editorversion").parse().unwrap(),
             editor_build: g.get_value("editorbuild").parse().unwrap(),
             map_version: g.get_value("mapversion").parse().unwrap(),
@@ -247,31 +78,223 @@ impl VersionInfo {
     }
 }
 
+#[derive(Debug)]
+struct World {
+    solids: Vec<Solid>,
+    rest: Box<GenericNode>,
+}
 
-// struct Root {
-//     world: World,
-//     entities: Entities,
-//     rest: GenericNode
-// }
+impl World {
+    fn parse(mut g: Box<GenericNode>) -> Self {
+        let solids = g.children_nodes.remove("solid").unwrap();
+        let solids = solids
+            .into_iter()
+            .map(|t| Solid::parse(t.as_generic()))
+            .collect();
+        Self { solids, rest: g }
+    }
+}
 
-// struct World {
-//     solids: Vec<Solid>,
-//     rest: GenericNode,
-// }
+// impl FromIterator<
 
-// struct Solid {
-//     id: u32,
-//     sides: Vec<Side>,
-//     rest: GenericNode,
-// }
+impl ToGeneric for World {
+    fn as_generic(&self) -> Box<GenericNode> {
+        let mut g = self.rest.clone();
+        let solids = self.solids.iter().map(|s| s.as_generic());
+        let mut gsolids = vec![];
+        for s in solids {
+            gsolids.push(s)
+        }
 
-// struct Side {
-//     pub id: u32,
-//     pub plane: Plane,
-//     pub material: String,
-//     pub u_axis: ([f32;4], f32),
-//     pub v_axis: ([f32;4], f32),
-//     pub rotation: f32,
-//     pub lightmap_scale: u32,
-//     pub smoothing_groups: u32,
-// }
+        // g.set_children("solid", gsolids);
+
+        g
+    }
+}
+
+#[derive(Debug)]
+struct Solid {
+    id: u32,
+    sides: Vec<Side>,
+    rest: Box<GenericNode>,
+}
+
+impl Solid {
+    fn parse(mut g: Box<GenericNode>) -> Self {
+        let sides = g
+            .children_nodes
+            .remove("side")
+            .unwrap()
+            .into_iter()
+            .map(|s| Side::parse(s.as_generic()))
+            .collect();
+        let id = g
+            .key_value_pairs
+            .remove("id")
+            .unwrap()
+            .pop()
+            .unwrap()
+            .parse()
+            .unwrap();
+        Self { id, sides, rest: g }
+    }
+}
+
+impl ToGeneric for Solid {
+    fn as_generic(&self) -> Box<GenericNode> {
+        let mut g = self.rest.clone();
+
+        g.set_value("id", self.id);
+        // g.set_children("solid", self.sides.iter().map(|s| s.as_generic()).collect());
+
+        g
+    }
+}
+
+#[derive(Debug)]
+struct Side {
+    pub id: u32,
+    pub plane: Plane,
+    pub material: String,
+    pub u_axis: UV,
+    pub v_axis: UV,
+    pub rotation: f32,
+    pub lightmap_scale: u32,
+    pub smoothing_groups: u32,
+    pub rest: Box<GenericNode>,
+}
+
+impl Side {
+    fn parse(mut g: Box<GenericNode>) -> Self {
+        let id = g
+            .key_value_pairs
+            .remove("id")
+            .unwrap()
+            .pop()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let plane = g.key_value_pairs.remove("plane").unwrap().pop().unwrap();
+        let material = g.key_value_pairs.remove("material").unwrap().pop().unwrap();
+        let u_axis = g.key_value_pairs.remove("uaxis").unwrap().pop().unwrap();
+        let v_axis = g.key_value_pairs.remove("vaxis").unwrap().pop().unwrap();
+        let rotation = g.key_value_pairs.remove("rotation").unwrap().pop().unwrap();
+        let lightmap_scale = g
+            .key_value_pairs
+            .remove("lightmapscale")
+            .unwrap()
+            .pop()
+            .unwrap();
+        let smoothing_groups = g
+            .key_value_pairs
+            .remove("smoothing_groups")
+            .unwrap()
+            .pop()
+            .unwrap();
+
+        let plane = Plane::parse(&plane);
+        let u_axis = UV::parse(&u_axis);
+        let v_axis = UV::parse(&v_axis);
+        let rotation = rotation.parse().unwrap();
+        let lightmap_scale = lightmap_scale.parse().unwrap();
+        let smoothing_groups = smoothing_groups.parse().unwrap();
+
+        Self {
+            id,
+            plane,
+            material,
+            u_axis,
+            v_axis,
+            rotation,
+            lightmap_scale,
+            smoothing_groups,
+            rest: g
+        }
+    }
+}
+
+impl ToGeneric for Side {
+    fn as_generic(&self) -> Box<GenericNode> {
+        let mut g = self.rest.clone();
+
+        g.set_value("id", self.id);
+        // g.set_child("solid", self.sides.iter().map(|s| s.as_generic()));
+
+        g
+    }
+}
+
+#[derive(Debug)]
+struct UV([f32; 4], f32);
+
+impl UV {
+    fn parse(mut s: &str) -> Self {
+        let mut tmp = Self([0.0, 0.0, 0.0, 0.0], 0.0);
+        s = &s[1..];
+        let mut lr = s.split("]");
+        let coords = lr.next().unwrap();
+        let mut coords = coords.split(" ");
+        for i in 0..4 {
+            tmp.0[i] = coords.next().unwrap().parse().unwrap();
+        }
+        tmp.1 = lr.next().unwrap().trim().parse().unwrap();
+
+        tmp
+    }
+}
+
+#[derive(Debug)]
+struct Plane {
+    pub points: [Point; 3],
+}
+
+impl Plane {
+    fn parse(mut input: &str) -> Self {
+        let mut jump_past = |pattern: &str| {
+            input.find(pattern).map(|pos| {
+                let d = &input[0..pos];
+                input = &input[pos + pattern.len()..];
+                d
+            })
+        };
+
+        let mut p: Plane = Plane {
+            points: [
+                Point {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Point {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+                Point {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                },
+            ],
+        };
+
+        for pi in 0..3 {
+            jump_past("(").unwrap();
+
+            let x = jump_past(" ").unwrap().parse().unwrap();
+            let y = jump_past(" ").unwrap().parse().unwrap();
+            let z = jump_past(")").unwrap().parse().unwrap();
+
+            p.points[pi] = Point { x, y, z };
+        }
+
+        p
+    }
+}
+
+#[derive(Debug)]
+struct Point {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}

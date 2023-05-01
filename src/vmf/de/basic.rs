@@ -10,6 +10,53 @@ impl TextTree<'_> {
     pub fn is_empty(&self) -> bool {
         self.key_value_pairs.is_empty() && self.children_nodes.is_empty()
     }
+
+    pub fn to_text(&self, indent_level: u32) -> String {
+        let mut buf = String::new();
+
+        macro_rules! crlf {
+            () => {
+                buf += "\r\n";
+            };
+        }
+        macro_rules! indent {
+            () => {
+                for _ in 0..indent_level {
+                    buf += "\t"
+                }
+            };
+        }
+
+        for (key, values) in &self.key_value_pairs {
+            for value in values {
+                indent!();
+                buf += "\"";
+                buf += &key;
+                buf += "\" \"";
+                buf += &value;
+                buf += "\"";
+                crlf!();
+            }
+        }
+
+        for (name, nodes) in &self.children_nodes {
+
+            for node in nodes {
+                indent!();
+                buf += &name;
+                crlf!();
+                indent!();
+                buf += "{";
+                crlf!();
+                buf += &node.to_text(indent_level + 1);
+                indent!();
+                buf += "}";
+                crlf!();
+            }
+        }
+
+        buf
+    }
 }
 pub struct BasicParser<'a> {
     pub input: &'a str,

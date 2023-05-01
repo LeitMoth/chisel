@@ -7,6 +7,7 @@ use super::basic::{BasicParser, TextTree};
 pub struct Deserializer<'de> {
     parent_stack: Vec<TextTree<'de>>,
     current_values: Option<Vec<&'de str>>,
+    current_rest: Option<String>,
 }
 
 impl<'de> Deserializer<'de> {
@@ -23,6 +24,7 @@ impl<'de> Deserializer<'de> {
         Deserializer {
             parent_stack: vec![inp],
             current_values: None,
+            current_rest: None,
         }
     }
 }
