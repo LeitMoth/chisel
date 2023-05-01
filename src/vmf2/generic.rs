@@ -22,8 +22,7 @@ impl GenericNode {
     }
 
     pub fn set_children(&mut self, name: impl ToString, children: Vec<GenericNode>) {
-        self.children_nodes
-            .insert(name.to_string(), children);
+        self.children_nodes.insert(name.to_string(), children);
     }
 
     pub fn to_string(&self) -> String {

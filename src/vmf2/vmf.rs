@@ -11,7 +11,12 @@ pub struct Vmf {
 
 impl Vmf {
     pub fn parse(mut g: GenericNode) -> Self {
-        let version_info = g.children_nodes.remove("versioninfo").unwrap().pop().unwrap();
+        let version_info = g
+            .children_nodes
+            .remove("versioninfo")
+            .unwrap()
+            .pop()
+            .unwrap();
         let world = g.children_nodes.remove("world").unwrap().pop().unwrap();
 
         let version_info = VersionInfo::parse(version_info);
@@ -28,7 +33,7 @@ impl Vmf {
         let mut g = self.rest.clone();
 
         g.set_child("versioninfo", self.version_info.as_generic());
-        g.set_child("world",self.world.as_generic());
+        g.set_child("world", self.world.as_generic());
 
         g
     }
@@ -70,7 +75,7 @@ impl VersionInfo {
         g.set_value("formatversion", self.format_version);
         g.set_value("prefab", self.prefab);
 
-g
+        g
     }
 }
 
@@ -83,16 +88,16 @@ struct World {
 impl World {
     fn parse(mut g: GenericNode) -> Self {
         let solids = g.children_nodes.remove("solid").unwrap();
-        let solids = solids
-            .into_iter()
-            .map(Solid::parse)
-            .collect();
+        let solids = solids.into_iter().map(Solid::parse).collect();
         Self { solids, rest: g }
     }
     fn as_generic(&self) -> GenericNode {
         let mut g = self.rest.clone();
 
-        g.set_children("solid", self.solids.iter().map(|s| s.as_generic()).collect());
+        g.set_children(
+            "solid",
+            self.solids.iter().map(|s| s.as_generic()).collect(),
+        );
 
         g
     }
@@ -192,7 +197,7 @@ impl Side {
             rotation,
             lightmap_scale,
             smoothing_groups,
-            rest: g
+            rest: g,
         }
     }
 

@@ -5,10 +5,7 @@ use std::{
 
 // use serde::{Deserialize, Serialize};
 
-use crate::vmf2::{
-    generic::BasicParser,
-    vmf::Vmf,
-};
+use crate::vmf2::{generic::BasicParser, vmf::Vmf};
 
 // #[derive(Debug, Serialize, Deserialize)]
 // #[serde(rename = "solid")]
