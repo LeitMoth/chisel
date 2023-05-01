@@ -77,7 +77,6 @@ pub fn ui_system(
         .rect
         .height();
 
-
     occupied_screen_space.bottom = egui::TopBottomPanel::bottom("bottom_panel")
         .resizable(false)
         .show(ctx, |ui| {
