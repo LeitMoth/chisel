@@ -68,28 +68,28 @@ impl fmt::Display for CameraController {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         todo!();
         /*
-        write!(
-            f,
-            "
-Freecam Controls:
-    MOUSE\t- Move camera orientation
-    {:?}/{:?}\t- Enable mouse movement
-    {:?}{:?}\t- forward/backward
-    {:?}{:?}\t- strafe left/right
-    {:?}\t- 'run'
-    {:?}\t- up
-    {:?}\t- down",
-            self.mouse_key_enable_mouse,
-            self.keyboard_key_enable_mouse,
-            self.key_forward,
-            self.key_back,
-            self.key_left,
-            self.key_right,
-            self.key_run,
-            self.key_up,
-            self.key_down
-        )
- */
+                write!(
+                    f,
+                    "
+        Freecam Controls:
+            MOUSE\t- Move camera orientation
+            {:?}/{:?}\t- Enable mouse movement
+            {:?}{:?}\t- forward/backward
+            {:?}{:?}\t- strafe left/right
+            {:?}\t- 'run'
+            {:?}\t- up
+            {:?}\t- down",
+                    self.mouse_key_enable_mouse,
+                    self.keyboard_key_enable_mouse,
+                    self.key_forward,
+                    self.key_back,
+                    self.key_left,
+                    self.key_right,
+                    self.key_run,
+                    self.key_up,
+                    self.key_down
+                )
+         */
     }
 }
 
@@ -170,7 +170,9 @@ fn camera_controller(
 
         // Handle mouse input
         let mut mouse_delta = Vec2::ZERO;
-        if key_input.pressed(options.key_enable_move) && mouse_button_input.pressed(options.mouse_key_enable_mouse) {
+        if key_input.pressed(options.key_enable_move)
+            && mouse_button_input.pressed(options.mouse_key_enable_mouse)
+        {
             for mut window in &mut windows {
                 if !window.focused {
                     continue;
@@ -184,7 +186,9 @@ fn camera_controller(
                 mouse_delta += mouse_event.delta;
             }
         }
-        if mouse_button_input.just_released(options.mouse_key_enable_mouse) /* || key_input.just_released(options.key_enable_move) */ {
+        if mouse_button_input.just_released(options.mouse_key_enable_mouse)
+        /* || key_input.just_released(options.key_enable_move) */
+        {
             for mut window in &mut windows {
                 window.cursor.grab_mode = CursorGrabMode::None;
                 window.cursor.visible = true;

@@ -1,19 +1,26 @@
-use std::{fs::File, io::{BufReader, Read, BufWriter, Write}};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter, Read, Write},
+};
 
-use bevy::{prelude::{Resource, FromWorld, World, Handle}, asset::Asset, reflect::TypeUuid};
+use bevy::{
+    asset::Asset,
+    prelude::{FromWorld, Handle, Resource, World},
+    reflect::TypeUuid,
+};
 
-use super::{vmf::Vmf, generic::GenericNode};
+use super::{generic::GenericNode, vmf::Vmf};
 
-#[derive(Debug,Resource,Default)]
+#[derive(Debug, Resource, Default)]
 pub struct ActiveVmf {
-    pub active: Option<Handle<VmfFile>>
+    pub active: Option<Handle<VmfFile>>,
 }
 
-#[derive(Debug,TypeUuid)]
-#[uuid="9497d134-0aee-4af7-9ae0-a5c5268eeb8e"]
+#[derive(Debug, TypeUuid)]
+#[uuid = "9497d134-0aee-4af7-9ae0-a5c5268eeb8e"]
 pub struct VmfFile {
     file: File,
-    pub vmf: Vmf
+    pub vmf: Vmf,
 }
 
 impl VmfFile {
@@ -27,16 +34,14 @@ impl VmfFile {
 
         let vmf = Vmf::parse(generic);
 
-        Self {
-            file,
-            vmf
-        }
+        Self { file, vmf }
     }
 
     pub fn save(&self, name: &str) {
         let file = File::create(name).unwrap();
 
-        BufWriter::new(&file).write_all(self.vmf.as_generic().to_string().as_bytes()).unwrap();
+        BufWriter::new(&file)
+            .write_all(self.vmf.as_generic().to_string().as_bytes())
+            .unwrap();
     }
 }
-

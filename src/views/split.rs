@@ -1,9 +1,9 @@
 use bevy::{
-    core_pipeline::clear_color::{ClearColorConfig},
+    core_pipeline::clear_color::ClearColorConfig,
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
-        view::{RenderLayers},
+        view::RenderLayers,
     },
     window::PrimaryWindow,
 };

@@ -93,7 +93,6 @@ impl GenericNode {
     }
 }
 
-
 struct ParseStep<'a> {
     subtree: GenericNode,
     leftover: &'a str,
@@ -127,7 +126,7 @@ fn read_tree(mut input: &str) -> Result<ParseStep, String> {
                 let (name, rest) = input.split_once("{").ok_or("Expected {")?;
                 let name = name.trim();
 
-                let ParseStep {subtree, leftover } = read_tree(rest)?;
+                let ParseStep { subtree, leftover } = read_tree(rest)?;
                 input = leftover;
 
                 match node.children_nodes.get_mut(name) {
@@ -145,5 +144,8 @@ fn read_tree(mut input: &str) -> Result<ParseStep, String> {
         }
     }
 
-    Ok(ParseStep{ subtree: node, leftover: input })
+    Ok(ParseStep {
+        subtree: node,
+        leftover: input,
+    })
 }

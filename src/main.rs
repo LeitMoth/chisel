@@ -1,17 +1,17 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use geometry::StandardPlane;
-use init::{setup_system, wiggle_system, change};
+use init::{change, setup_system, wiggle_system};
 use ui::ChiselUIPlugin;
 use views::split::ChiselCamerasPlugin;
 use vmf2::vmf;
 
+mod geometry;
 mod init;
+mod solidcomp;
 mod ui;
 mod views;
 mod vmf2;
-mod solidcomp;
-mod geometry;
 
 fn main() {
     let s = StandardPlane::new(&vmf::Plane {
@@ -19,17 +19,17 @@ fn main() {
             vmf::Point {
                 x: 1.0,
                 y: -2.0,
-                z: 0.0
+                z: 0.0,
             },
             vmf::Point {
                 x: 3.0,
                 y: 1.0,
-                z: 4.0
+                z: 4.0,
             },
             vmf::Point {
                 x: 0.0,
                 y: -1.0,
-                z: 2.0
+                z: 2.0,
             },
         ],
     });

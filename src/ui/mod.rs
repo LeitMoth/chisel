@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
-use crate::vmf2::res::{VmfFile, ActiveVmf};
+use crate::vmf2::res::{ActiveVmf, VmfFile};
 
 #[derive(Default, Resource)]
 pub struct OccupiedScreenSpace {
@@ -45,7 +45,7 @@ pub fn ui_system(
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
     // mut vmf_file: ResMut<VmfFile>
     mut vmf_files: ResMut<Assets<VmfFile>>,
-    mut active_vmf: ResMut<ActiveVmf>
+    mut active_vmf: ResMut<ActiveVmf>,
 ) {
     if !*is_initialized {
         *is_initialized = true;
@@ -65,8 +65,8 @@ pub fn ui_system(
                     if ui.button("Load").clicked() {
                         println!("loading...");
                         let name = "testing/2_cube.vmf";
-                        // let name = "testing/mp_coop_doors.vmf";
-                        let vmf_file = VmfFile::open(name);                    
+                        let name = "testing/mp_coop_doors.vmf";
+                        let vmf_file = VmfFile::open(name);
                         active_vmf.active = Some(vmf_files.add(vmf_file));
                         println!("loaded");
                     }
