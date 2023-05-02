@@ -1,11 +1,9 @@
 use bevy::{
-    core_pipeline::clear_color::{self, ClearColorConfig},
+    core_pipeline::clear_color::{ClearColorConfig},
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
-        mesh::{Indices, VertexAttributeValues},
-        render_resource::PrimitiveTopology,
-        view::{self, RenderLayers},
+        view::{RenderLayers},
     },
     window::PrimaryWindow,
 };

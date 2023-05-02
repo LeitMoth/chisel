@@ -49,7 +49,7 @@ pub fn wiggle_system(
         })
         .collect::<Vec<_>>();
     meshes
-        .get_mut(&handle)
+        .get_mut(handle)
         .unwrap()
         .insert_attribute(Mesh::ATTRIBUTE_POSITION, v);
 }
@@ -101,6 +101,7 @@ pub fn setup_system(
         RenderLayers::layer(1),
     ));
 
+/*
     commands.spawn((
         PointLightBundle {
             point_light: PointLight {
@@ -113,4 +114,5 @@ pub fn setup_system(
         },
         RenderLayers::layer(0),
     ));
+*/
 }
