@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use bevy::prelude::Vec3;
+
 use super::generic::GenericNode;
 
 /*
@@ -13,9 +15,9 @@ Hidden Entities
 
 #[derive(Debug)]
 pub struct Vmf {
-    version_info: VersionInfo,
-    world: World,
-    rest: GenericNode,
+    pub version_info: VersionInfo,
+    pub world: World,
+    pub rest: GenericNode,
 }
 
 impl Vmf {
@@ -89,9 +91,9 @@ impl VersionInfo {
 }
 
 #[derive(Debug)]
-struct World {
-    solids: Vec<Solid>,
-    rest: GenericNode,
+pub struct World {
+    pub solids: Vec<Solid>,
+    pub rest: GenericNode,
 }
 
 impl World {
@@ -113,10 +115,10 @@ impl World {
 }
 
 #[derive(Debug)]
-struct Solid {
-    id: u32,
-    sides: Vec<Side>,
-    rest: GenericNode,
+pub struct Solid {
+    pub id: u32,
+    pub sides: Vec<Side>,
+    pub rest: GenericNode,
 }
 
 impl Solid {
@@ -150,7 +152,7 @@ impl Solid {
 }
 
 #[derive(Debug)]
-struct Side {
+pub struct Side {
     pub id: u32,
     pub plane: Plane,
     pub material: String,
@@ -227,7 +229,7 @@ impl Side {
 }
 
 #[derive(Debug)]
-struct UV([f32; 4], f32);
+pub struct UV([f32; 4], f32);
 
 impl UV {
     fn parse(mut s: &str) -> Self {
@@ -262,7 +264,7 @@ impl UV {
 }
 
 #[derive(Debug)]
-struct Plane {
+pub struct Plane {
     pub points: [Point; 3],
 }
 
@@ -330,8 +332,15 @@ impl Plane {
 }
 
 #[derive(Debug)]
-struct Point {
+pub struct Point {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+impl Point {
+    // IMPORTANT: Hammer stores coordinates with Z as up, where here we use Y
+    pub fn new_vec3(&self) -> Vec3 {
+        Vec3::new(self.x, self.z, self.y)
+    }
 }

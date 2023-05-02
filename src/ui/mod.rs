@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 
+use crate::vmf2::res::{VmfFile, ActiveVmf};
+
 #[derive(Default, Resource)]
 pub struct OccupiedScreenSpace {
     pub left: f32,
@@ -29,6 +31,8 @@ impl Plugin for ChiselUIPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<OccupiedScreenSpace>()
             .init_resource::<Images>()
+            .init_resource::<ActiveVmf>()
+            .add_asset::<VmfFile>()
             .add_system(ui_system);
     }
 }
@@ -39,6 +43,9 @@ pub fn ui_system(
     mut is_initialized: Local<bool>,
     images: Res<Images>,
     mut occupied_screen_space: ResMut<OccupiedScreenSpace>,
+    // mut vmf_file: ResMut<VmfFile>
+    mut vmf_files: ResMut<Assets<VmfFile>>,
+    mut active_vmf: ResMut<ActiveVmf>
 ) {
     if !*is_initialized {
         *is_initialized = true;
@@ -56,10 +63,24 @@ pub fn ui_system(
                         std::process::exit(0);
                     }
                     if ui.button("Load").clicked() {
-                        println!("load")
+                        println!("loading...");
+                        let name = "testing/2_cube.vmf";
+                        // let name = "testing/mp_coop_doors.vmf";
+                        let vmf_file = VmfFile::open(name);                    
+                        active_vmf.active = Some(vmf_files.add(vmf_file));
+                        println!("loaded");
                     }
-                    if ui.button("Save").clicked() {
-                        println!("save")
+                    match active_vmf.active.as_ref().and_then(|h| vmf_files.get(h)) {
+                        Some(vmf_file) => {
+                            if ui.button("Save").clicked() {
+                                println!("saving...");
+                                vmf_file.save("testing/test_save.vmf");
+                                println!("saved");
+                            }
+                        }
+                        None => {
+                            ui.label("Save");
+                        }
                     }
                 });
                 egui::menu::menu_button(ui, "Edit", |ui| {

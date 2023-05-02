@@ -8,14 +8,17 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::ui::OccupiedScreenSpace;
+use crate::{ui::OccupiedScreenSpace, views::camera_controller_plugin::CameraController};
+
+use super::camera_controller_plugin::CameraControllerPlugin;
 
 pub struct ChiselCamerasPlugin;
 
 impl Plugin for ChiselCamerasPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_cameras)
-            .add_system(update_cameras);
+            .add_system(update_cameras)
+            .add_plugin(CameraControllerPlugin);
     }
 }
 
@@ -23,12 +26,14 @@ pub fn setup_cameras(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 1.0, -6.0).looking_at(Vec3::ZERO, Vec3::Y),
+            // transform: Transform::from_xyz(-9_000.0, -1_000.0, -20.0).looking_at(Vec3::new(-9_450.0,-650.0, -24.0), Vec3::Y),
             camera_3d: Camera3d {
                 clear_color: ClearColorConfig::Custom(Color::BLACK),
                 ..default()
             },
             ..default()
         },
+        CameraController::default(),
         View3DCamera,
         RenderLayers::layer(0),
     ));
@@ -55,7 +60,7 @@ pub fn setup_cameras(mut commands: Commands) {
                     ..default()
                 },
                 $comp,
-                RenderLayers::layer(1),
+                RenderLayers::layer(0), // TODO change back
             ));
         };
     }
