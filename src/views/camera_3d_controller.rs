@@ -1,10 +1,11 @@
+use bevy::math::DVec2;
 use bevy::window::CursorGrabMode;
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
 use std::f32::consts::*;
 use std::fmt;
 
-use super::split::View3DCamera;
+use super::split::{ActiveSplit, CameraView, View3DCamera};
 
 /*
 Taken from the bevy scene-viewer example
@@ -99,6 +100,7 @@ impl Plugin for CameraControllerPlugin {
 }
 
 fn camera_controller(
+    active_split: Res<ActiveSplit>,
     time: Res<Time>,
     mut windows: Query<&mut Window>,
     mut mouse_events: EventReader<MouseMotion>,
@@ -109,7 +111,9 @@ fn camera_controller(
 ) {
     let dt = time.delta_seconds();
 
-    if let Ok((mut transform, mut options)) = query.get_single_mut() {
+    if let (Ok((mut transform, mut options)), ActiveSplit::View(CameraView::View3D, center)) =
+        (query.get_single_mut(), &*active_split)
+    {
         if !options.initialized {
             let (yaw, pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
             options.yaw = yaw;
@@ -171,6 +175,10 @@ fn camera_controller(
         if key_input.pressed(options.key_enable_move)
             && mouse_button_input.pressed(options.mouse_key_enable_mouse)
         {
+            for mouse_event in mouse_events.iter() {
+                mouse_delta += mouse_event.delta;
+            }
+
             for mut window in &mut windows {
                 if !window.focused {
                     continue;
@@ -178,10 +186,13 @@ fn camera_controller(
 
                 window.cursor.grab_mode = CursorGrabMode::Locked;
                 window.cursor.visible = false;
-            }
 
-            for mouse_event in mouse_events.iter() {
-                mouse_delta += mouse_event.delta;
+                // CursorGrabMode::Locked doesn't seem to do anything, so I use this little hack. Have to flip y for some reason
+                let height = window.physical_height();
+                window.set_physical_cursor_position(Some(DVec2::new(
+                    center.x as _,
+                    height.saturating_sub(center.y) as _,
+                )));
             }
         }
         if mouse_button_input.just_released(options.mouse_key_enable_mouse)
@@ -199,6 +210,12 @@ fn camera_controller(
                 .clamp(-PI / 2., PI / 2.);
             options.yaw -= mouse_delta.x * RADIANS_PER_DOT * options.sensitivity;
             transform.rotation = Quat::from_euler(EulerRot::ZYX, 0.0, options.yaw, options.pitch);
+        }
+    } else {
+        // Make sure we aren't grabbing the cursor if we aren't active
+        for mut window in &mut windows {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
         }
     }
 }

@@ -3,22 +3,33 @@ use bevy::{
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
-        view::RenderLayers,
+        view::{window, RenderLayers},
     },
     window::PrimaryWindow,
 };
 
-use crate::{ui::OccupiedScreenSpace, views::camera_controller_plugin::CameraController};
+use crate::{
+    ui::OccupiedScreenSpace,
+    views::{
+        camera_3d_controller::CameraController, camera_ortho_controller::CameraOrthoController,
+    },
+};
 
-use super::camera_controller_plugin::CameraControllerPlugin;
+use super::{
+    camera_3d_controller::CameraControllerPlugin,
+    camera_ortho_controller::CameraOrthoControllerPlugin,
+};
 
 pub struct ChiselCamerasPlugin;
 
 impl Plugin for ChiselCamerasPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_cameras)
+            .init_resource::<ActiveSplit>()
             .add_system(update_cameras)
-            .add_plugin(CameraControllerPlugin);
+            .add_system(update_active_split)
+            .add_plugin(CameraControllerPlugin)
+            .add_plugin(CameraOrthoControllerPlugin);
     }
 }
 
@@ -39,10 +50,10 @@ pub fn setup_cameras(mut commands: Commands) {
     ));
 
     macro_rules! ortho_cam {
-        ($comp: ident, $order: literal) => {
+        ($comp: ident, $comp2: expr, $order: literal, $transform: expr) => {
             commands.spawn((
                 Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 10.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
+                    transform: $transform,
                     camera: Camera {
                         order: $order,
                         ..default()
@@ -60,14 +71,36 @@ pub fn setup_cameras(mut commands: Commands) {
                     ..default()
                 },
                 $comp,
+                $comp2,
                 RenderLayers::layer(1),
             ));
         };
     }
 
-    ortho_cam!(TopCamera, 1);
-    ortho_cam!(FrontCamera, 2);
-    ortho_cam!(SideCamera, 3);
+    ortho_cam!(
+        TopCamera,
+        CameraOrthoController {
+            view: CameraView::Top
+        },
+        1,
+        Transform::from_xyz(0.0, 10.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z)
+    );
+    ortho_cam!(
+        FrontCamera,
+        CameraOrthoController {
+            view: CameraView::Front
+        },
+        2,
+        Transform::from_xyz(100.0, 0.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y)
+    );
+    ortho_cam!(
+        SideCamera,
+        CameraOrthoController {
+            view: CameraView::Side
+        },
+        3,
+        Transform::from_xyz(0.0, 0.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y)
+    );
 }
 
 #[derive(Component)]
@@ -81,6 +114,75 @@ pub struct FrontCamera;
 
 #[derive(Component)]
 pub struct SideCamera;
+
+#[derive(Debug, Default, Resource)]
+pub enum ActiveSplit {
+    #[default]
+    None,
+    View(CameraView, UVec2),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CameraView {
+    View3D,
+    Side,
+    Top,
+    Front,
+}
+
+pub fn update_active_split(
+    mut active_split: ResMut<ActiveSplit>,
+    occupied_screen_space: Res<OccupiedScreenSpace>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+) {
+    let window = windows.single();
+
+    let left = occupied_screen_space.left as u32;
+    let right = occupied_screen_space.right as u32;
+    let top = occupied_screen_space.top as u32;
+    let bottom = occupied_screen_space.bottom as u32;
+
+    let w_height = window.physical_height();
+
+    // Ensure that each viewport has eat least one pixel of width.
+    // Zero-width viewports cause a crash (with vulkan at least)
+    // (We aren't drawing anything in this function, but we do this to stay consistent)
+    let dx = window.physical_width().saturating_sub(left + right).max(2);
+    let dy = window.physical_height().saturating_sub(bottom + top).max(2);
+
+    let quarter_x = dx / 2;
+    let quarter_y = dy / 2;
+
+    let quarter_size = UVec2::new(quarter_x, quarter_y);
+
+    let view_3d_corner = UVec2::new(left, top);
+    let side_corner = view_3d_corner + quarter_size;
+    let top_corner = view_3d_corner + UVec2::new(quarter_x, 0);
+    let front_corner = view_3d_corner + UVec2::new(0, quarter_y);
+
+    match window.physical_cursor_position() {
+        Some(pos) => {
+            let pos = UVec2::new(pos.x as u32, w_height.saturating_sub(pos.y as _));
+
+            if pos.cmpge(view_3d_corner).all() && pos.cmple(view_3d_corner + quarter_size).all() {
+                *active_split =
+                    ActiveSplit::View(CameraView::View3D, view_3d_corner + quarter_size / 2);
+            } else if pos.cmpge(top_corner).all() && pos.cmple(top_corner + quarter_size).all() {
+                *active_split = ActiveSplit::View(CameraView::Top, top_corner + quarter_size / 2);
+            } else if pos.cmpge(front_corner).all() && pos.cmple(front_corner + quarter_size).all()
+            {
+                *active_split =
+                    ActiveSplit::View(CameraView::Front, front_corner + quarter_size / 2);
+            } else if pos.cmpge(side_corner).all() && pos.cmple(side_corner + quarter_size).all() {
+                *active_split = ActiveSplit::View(CameraView::Side, side_corner + quarter_size / 2);
+            } else {
+                *active_split = ActiveSplit::None;
+            }
+            // dbg!(active_split);
+        }
+        None => *active_split = ActiveSplit::None,
+    };
+}
 
 pub fn update_cameras(
     occupied_screen_space: Res<OccupiedScreenSpace>,

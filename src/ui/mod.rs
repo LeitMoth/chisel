@@ -64,7 +64,7 @@ pub fn ui_system(
                     }
                     if ui.button("Load").clicked() {
                         println!("loading...");
-                        let name = "testing/2_cube.vmf";
+                        // let name = "testing/2_cube.vmf";
                         let name = "testing/mp_coop_doors.vmf";
                         let vmf_file = VmfFile::open(name);
                         active_vmf.active = Some(vmf_files.add(vmf_file));

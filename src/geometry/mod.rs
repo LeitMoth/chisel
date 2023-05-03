@@ -1,5 +1,8 @@
 use crate::vmf2::vmf;
-use bevy::prelude::{shape::Plane, *};
+use bevy::{
+    prelude::{shape::Plane, *},
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
+};
 
 #[derive(Debug)]
 pub struct StandardPlane {
@@ -61,4 +64,91 @@ impl StandardPlane {
 
         Some(Vec3::new(x, y, z))
     }
+}
+
+pub fn planes_to_sides(planes: &Vec<StandardPlane>) -> Vec<Vec<Vec3>> {
+    let mut sides: Vec<Vec<Vec3>> = Vec::new();
+
+    for (i, p1) in planes.iter().enumerate() {
+        let mut points = Vec::new();
+
+        let mut start = None;
+
+        'outer: for (j, p2) in planes.iter().enumerate() {
+            for (k, p3) in planes.iter().enumerate() {
+                if i != j && j != k && i != k {
+                    if let Some(point) = p1.intersection_point(p2, p3) {
+                        points.push(point);
+                        start = Some((j, k));
+                        break 'outer;
+                    }
+                }
+            }
+        }
+
+        if let None = start {
+            break;
+        }
+
+        let (start_j, start_k) = start.unwrap();
+        let mut j = start_j;
+        let mut k = start_k;
+
+        fn find_with_with_without(
+            planes: &Vec<StandardPlane>,
+            required: usize,
+            with: usize,
+            without: usize,
+        ) -> Option<(usize, Vec3)> {
+            for (i, plane) in planes.iter().enumerate() {
+                if i != required && i != with && i != without {
+                    if let Some(point) = plane.intersection_point(&planes[required], &planes[with])
+                    {
+                        return Some((i, point));
+                    }
+                }
+            }
+            return None;
+        }
+
+        while let Some((index, point)) = find_with_with_without(&planes, i, j, k) {
+            // println!("estoy loopin? {i} {j} {k}");
+            points.push(point);
+            k = j;
+            j = index;
+
+            if j == start_j && k == start_k || j == start_k && k == start_j {
+                break;
+            }
+        }
+
+        sides.push(points);
+    }
+
+    sides
+}
+
+pub fn side_to_triangles(side: Vec<Vec3>) -> Mesh {
+    let len = side.len();
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
+    let mut idx = Vec::new();
+    for x in 2..len - 1 {
+        idx.push((x + 1) as u16);
+        idx.push(x as u16);
+        idx.push(1);
+    }
+    mesh.set_indices(Some(Indices::U16(idx)));
+    mesh.duplicate_vertices();
+    mesh.compute_flat_normals();
+
+    mesh
+}
+
+pub fn side_to_lines(side: Vec<Vec3>) -> Mesh {
+    let mut linemesh = Mesh::new(PrimitiveTopology::LineStrip);
+    linemesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
+    linemesh.set_indices(None);
+
+    linemesh
 }
