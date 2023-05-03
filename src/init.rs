@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-pub fn change(
+pub fn change_vmf(
     active_vmf: Res<ActiveVmf>,
     vmfs_files: Res<Assets<VmfFile>>,
     mut meshes: ResMut<Assets<Mesh>>,

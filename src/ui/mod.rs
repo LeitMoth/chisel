@@ -63,33 +63,51 @@ pub fn ui_system(
                         std::process::exit(0);
                     }
                     if ui.button("Load").clicked() {
-                        println!("loading...");
-                        // let name = "testing/2_cube.vmf";
-                        let name = "testing/mp_coop_doors.vmf";
-                        let vmf_file = VmfFile::open(name);
-                        active_vmf.active = Some(vmf_files.add(vmf_file));
-                        println!("loaded");
+                        if let Some(path) = rfd::FileDialog::new()
+                            .set_directory("./testing")
+                            .add_filter("Valve Map Format (.vmf)", &["vmf"])
+                            .pick_file()
+                        {
+                            println!("loading...");
+                            let vmf_file = VmfFile::open(path);
+                            active_vmf.active = Some(vmf_files.add(vmf_file));
+                            println!("loaded");
+                        }
                     }
-                    match active_vmf.active.as_ref().and_then(|h| vmf_files.get(h)) {
+                    match active_vmf.active.as_ref().and_then(|h| vmf_files.get_mut(h)) {
                         Some(vmf_file) => {
                             if ui.button("Save").clicked() {
                                 println!("saving...");
-                                vmf_file.save("testing/test_save.vmf");
+                                vmf_file.save();
                                 println!("saved");
+                            }
+                            if ui.button("Save As...").clicked() {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .set_directory("./testing")
+                                    .add_filter("Valve Map Format (.vmf)", &["vmf"])
+                                    .save_file()
+                                {
+                                    println!("saving as...");
+                                    vmf_file.save_as(path);
+                                    println!("saved as");
+                                }
                             }
                         }
                         None => {
                             ui.label("Save");
+                            ui.label("Save As...");
                         }
                     }
                 });
                 egui::menu::menu_button(ui, "Edit", |ui| {
-                    if ui.button("Undo").clicked() {
-                        println!("undo")
-                    }
-                    if ui.button("Redo").clicked() {
-                        println!("redo")
-                    }
+                    ui.label("Undo");
+                    ui.label("Redo");
+                    // if ui.button("Undo").clicked() {
+                    //     println!("undo")
+                    // }
+                    // if ui.button("Redo").clicked() {
+                    //     println!("redo")
+                    // }
                 });
             });
         })
