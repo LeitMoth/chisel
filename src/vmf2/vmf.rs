@@ -235,9 +235,9 @@ impl UV {
     fn parse(mut s: &str) -> Self {
         let mut tmp = Self([0.0, 0.0, 0.0, 0.0], 0.0);
         s = &s[1..];
-        let mut lr = s.split("]");
+        let mut lr = s.split(']');
         let coords = lr.next().unwrap();
-        let mut coords = coords.split(" ");
+        let mut coords = coords.split(' ');
         for i in 0..4 {
             tmp.0[i] = coords.next().unwrap().parse().unwrap();
         }

@@ -5,7 +5,7 @@ use bevy::{
     window::CursorGrabMode,
 };
 
-use super::split::{ActiveSplit, CameraView, FrontCamera, SideCamera, TopCamera};
+use super::split::{ActiveSplit, CameraView};
 
 use bevy::render::camera::Projection::Orthographic;
 
@@ -28,7 +28,7 @@ const SENSITIVITY: f32 = 0.02;
 
 pub fn camera_ortho_controller(
     active_split: Res<ActiveSplit>,
-    time: Res<Time>,
+    _time: Res<Time>,
     mut windows: Query<&mut Window>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_button_input: Res<Input<MouseButton>>,
@@ -37,7 +37,7 @@ pub fn camera_ortho_controller(
     mut query: Query<(&mut Transform, &mut CameraOrthoController, &mut Projection)>,
 ) {
     if let ActiveSplit::View(cam, center) = &*active_split {
-        for (mut transform, mut controller, mut projection) in query.iter_mut() {
+        for (mut transform, controller, mut projection) in query.iter_mut() {
             if controller.view == *cam {
                 if let Orthographic(p) = &mut *projection {
                     let mut zoom = 0.0;

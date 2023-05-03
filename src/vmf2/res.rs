@@ -4,8 +4,7 @@ use std::{
 };
 
 use bevy::{
-    asset::Asset,
-    prelude::{FromWorld, Handle, Resource, World},
+    prelude::{Handle, Resource},
     reflect::TypeUuid,
 };
 

@@ -1,15 +1,10 @@
-use std::{cmp::Ordering, f32::consts::PI, mem::swap};
+use std::{f32::consts::PI};
 
 use bevy::{
-    ecs::{system::EntityCommands, world},
-    pbr::CascadeShadowConfigBuilder,
-    prelude::{shape::Plane, *},
+    prelude::{*},
     render::{
-        mesh::{Indices, MeshVertexAttribute},
-        render_resource::PrimitiveTopology,
         view::RenderLayers,
     },
-    utils::tracing::span::Attributes,
 };
 
 use crate::{
@@ -17,7 +12,6 @@ use crate::{
     solidcomp::SolidComponent,
     vmf2::{
         res::{ActiveVmf, VmfFile},
-        vmf::{self, Point},
     },
 };
 
@@ -33,7 +27,7 @@ pub fn change(
         if let Some(vmf) = active_vmf
             .active
             .as_ref()
-            .and_then(|handle| vmfs_files.get(&handle))
+            .and_then(|handle| vmfs_files.get(handle))
         {
             println!("Removing old Solids");
             for solid in &solids {
@@ -95,8 +89,8 @@ pub fn change(
 
 pub fn setup_system(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // directional 'sun' light
     commands.spawn((

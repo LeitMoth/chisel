@@ -1,6 +1,6 @@
 use crate::vmf2::vmf;
 use bevy::{
-    prelude::{shape::Plane, *},
+    prelude::{*},
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 
@@ -40,13 +40,13 @@ impl StandardPlane {
 
         let d_col = Vec3::new(self.d, p1.d, p2.d);
 
-        let mut x_top = s.clone();
+        let mut x_top = s;
         *x_top.col_mut(0) = d_col;
 
-        let mut y_top = s.clone();
+        let mut y_top = s;
         *y_top.col_mut(1) = d_col;
 
-        let mut z_top = s.clone();
+        let mut z_top = s;
         *z_top.col_mut(2) = d_col;
 
         let s_det = s.determinant();
@@ -66,7 +66,7 @@ impl StandardPlane {
     }
 }
 
-pub fn planes_to_sides(planes: &Vec<StandardPlane>) -> Vec<Vec<Vec3>> {
+pub fn planes_to_sides(planes: &[StandardPlane]) -> Vec<Vec<Vec3>> {
     let mut sides: Vec<Vec<Vec3>> = Vec::new();
 
     for (i, p1) in planes.iter().enumerate() {
@@ -86,7 +86,7 @@ pub fn planes_to_sides(planes: &Vec<StandardPlane>) -> Vec<Vec<Vec3>> {
             }
         }
 
-        if let None = start {
+        if start.is_none() {
             break;
         }
 
@@ -95,7 +95,7 @@ pub fn planes_to_sides(planes: &Vec<StandardPlane>) -> Vec<Vec<Vec3>> {
         let mut k = start_k;
 
         fn find_with_with_without(
-            planes: &Vec<StandardPlane>,
+            planes: &[StandardPlane],
             required: usize,
             with: usize,
             without: usize,
@@ -108,10 +108,10 @@ pub fn planes_to_sides(planes: &Vec<StandardPlane>) -> Vec<Vec<Vec3>> {
                     }
                 }
             }
-            return None;
+            None
         }
 
-        while let Some((index, point)) = find_with_with_without(&planes, i, j, k) {
+        while let Some((index, point)) = find_with_with_without(planes, i, j, k) {
             // println!("estoy loopin? {i} {j} {k}");
             points.push(point);
             k = j;

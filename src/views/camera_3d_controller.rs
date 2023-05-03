@@ -63,7 +63,7 @@ impl Default for CameraController {
 }
 
 impl fmt::Display for CameraController {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
         todo!();
         /*
                 write!(
@@ -106,7 +106,7 @@ fn camera_controller(
     mut mouse_events: EventReader<MouseMotion>,
     mouse_button_input: Res<Input<MouseButton>>,
     key_input: Res<Input<KeyCode>>,
-    mut move_toggled: Local<bool>,
+    _move_toggled: Local<bool>,
     mut query: Query<(&mut Transform, &mut CameraController), With<View3DCamera>>,
 ) {
     let dt = time.delta_seconds();

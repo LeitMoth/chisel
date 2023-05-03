@@ -49,9 +49,9 @@ impl GenericNode {
             for value in values {
                 indent!();
                 buf += "\"";
-                buf += &key;
+                buf += key;
                 buf += "\" \"";
-                buf += &value;
+                buf += value;
                 buf += "\"";
                 crlf!();
             }
@@ -60,7 +60,7 @@ impl GenericNode {
         for (name, nodes) in &self.children_nodes {
             for node in nodes {
                 indent!();
-                buf += &name;
+                buf += name;
                 crlf!();
                 indent!();
                 buf += "{";
@@ -85,7 +85,7 @@ impl GenericNode {
     pub fn parse(input: &str) -> Result<GenericNode, String> {
         let tmp = read_tree(input)?;
 
-        if tmp.leftover.len() != 0 {
+        if !tmp.leftover.is_empty() {
             Err("Leftover input: ".to_owned() + tmp.leftover)
         } else {
             Ok(tmp.subtree)
@@ -108,7 +108,7 @@ fn read_tree(mut input: &str) -> Result<ParseStep, String> {
             None => break,
             Some('"') => {
                 // Not extremely efficient. I think I could unpack into a tuple with a crate called "itertools"
-                let split: Vec<&str> = input.splitn(5, "\"").collect();
+                let split: Vec<&str> = input.splitn(5, '"').collect();
 
                 let key = split[1].to_owned();
                 let value = split[3].to_owned();
@@ -123,7 +123,7 @@ fn read_tree(mut input: &str) -> Result<ParseStep, String> {
                 input = split[4];
             }
             Some('a'..='z' | 'A'..='Z') => {
-                let (name, rest) = input.split_once("{").ok_or("Expected {")?;
+                let (name, rest) = input.split_once('{').ok_or("Expected {")?;
                 let name = name.trim();
 
                 let ParseStep { subtree, leftover } = read_tree(rest)?;

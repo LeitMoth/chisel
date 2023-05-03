@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
-        view::{window, RenderLayers},
+        view::{RenderLayers},
     },
     window::PrimaryWindow,
 };
