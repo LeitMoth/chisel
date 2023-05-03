@@ -60,7 +60,7 @@ pub fn setup_cameras(mut commands: Commands) {
                     ..default()
                 },
                 $comp,
-                RenderLayers::layer(0), // TODO change back
+                RenderLayers::layer(1),
             ));
         };
     }

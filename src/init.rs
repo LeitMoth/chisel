@@ -1,7 +1,8 @@
-use std::{cmp::Ordering, mem::swap};
+use std::{cmp::Ordering, f32::consts::PI, mem::swap};
 
 use bevy::{
     ecs::{system::EntityCommands, world},
+    pbr::CascadeShadowConfigBuilder,
     prelude::{shape::Plane, *},
     render::{
         mesh::{Indices, MeshVertexAttribute},
@@ -44,6 +45,7 @@ fn create_lines() -> Mesh {
     mesh
 }
 
+/*
 #[derive(Component)]
 pub struct Thingy;
 
@@ -70,7 +72,7 @@ pub fn wiggle_system(
         .unwrap()
         .insert_attribute(Mesh::ATTRIBUTE_POSITION, v);
 }
-
+ */
 pub fn change(
     active_vmf: Res<ActiveVmf>,
     vmfs_files: Res<Assets<VmfFile>>,
@@ -246,9 +248,17 @@ pub fn change(
                 }
                 */
                 for side in sides {
-                    let mut mesh = Mesh::new(PrimitiveTopology::LineStrip);
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
-                    mesh.set_indices(None);
+                    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side.clone());
+                    let mut idx = Vec::new();
+                    for x in 2..side.len() - 1 {
+                        idx.push((x + 1) as u16);
+                        idx.push(x as u16);
+                        idx.push(1);
+                    }
+                    mesh.set_indices(Some(Indices::U16(idx)));
+                    mesh.duplicate_vertices();
+                    mesh.compute_flat_normals();
 
                     commands.spawn((
                         PbrBundle {
@@ -257,13 +267,36 @@ pub fn change(
                             mesh: meshes.add(mesh),
                             material: materials.add(StandardMaterial {
                                 base_color: Color::rgb(1.0, 0.0, 0.0),
-                                unlit: true,
+                                double_sided: true,
+                                cull_mode: None,
+                                perceptual_roughness: 1.0,
+                                reflectance: 0.0,
                                 ..default()
                             }),
                             ..Default::default()
                         },
                         SolidComponent { id: solid.id },
                         RenderLayers::layer(0),
+                    ));
+
+                    let mut linemesh = Mesh::new(PrimitiveTopology::LineStrip);
+                    linemesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
+                    linemesh.set_indices(None);
+
+                    commands.spawn((
+                        PbrBundle {
+                            // transform: Transform::from_translation(Vec3::new(10_000.0, 9_000.0,0.0)).with_scale(Vec3::ONE * 0.01),
+                            transform: Transform::from_scale(Vec3::splat(1.0 / 128.0)),
+                            mesh: meshes.add(linemesh),
+                            material: materials.add(StandardMaterial {
+                                base_color: Color::rgb(1.0, 0.0, 0.0),
+                                unlit: true,
+                                ..default()
+                            }),
+                            ..Default::default()
+                        },
+                        SolidComponent { id: solid.id },
+                        RenderLayers::layer(1),
                     ));
                 }
 
@@ -305,38 +338,75 @@ pub fn setup_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // directional 'sun' light
     commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Plane {
-                size: 5.0,
-                subdivisions: 0,
-            })),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-            ..Default::default()
-        },
-        RenderLayers::layer(1),
-    ));
-
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(create_lines()),
-            material: materials.add(StandardMaterial {
-                base_color: Color::rgb(1.0, 0.5, 1.0),
-                unlit: true,
-                depth_bias: -10.0,
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                shadows_enabled: false,
+                illuminance: 1000.0,
                 ..default()
-            }),
-            ..Default::default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0.0, 10.0, 0.0),
+                rotation: Quat::from_rotation_x(-PI / 8.) * Quat::from_rotation_y(-PI / 3.),
+                ..default()
+            },
+            ..default()
         },
-        // MaterialMeshBundle {
-        //     mesh: meshes.add(create_triangle()),
-        //     material: materials.add(Color::rgb(1.0,0.4,0.2).into()),
-        //     ..default()
-        // },
-        Thingy,
         RenderLayers::layer(0),
     ));
 
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                shadows_enabled: false,
+                illuminance: 1000.0,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0.0, 10.0, 0.0),
+                rotation: Quat::from_axis_angle(Vec3::new(0.1, -1.0, 0.3), 0.0),
+                // Quat::from_rotation_x(-PI / 8.) * Quat::from_rotation_y(-PI / 3.),
+                ..default()
+            },
+            ..default()
+        },
+        RenderLayers::layer(0),
+    ));
+
+    /*
+       commands.spawn((
+           PbrBundle {
+               mesh: meshes.add(Mesh::from(shape::Plane {
+                   size: 5.0,
+                   subdivisions: 0,
+               })),
+               material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+               ..Default::default()
+           },
+           RenderLayers::layer(1),
+       ));
+
+       commands.spawn((
+           PbrBundle {
+               mesh: meshes.add(create_lines()),
+               material: materials.add(StandardMaterial {
+                   base_color: Color::rgb(1.0, 0.5, 1.0),
+                   unlit: true,
+                   depth_bias: -10.0,
+                   ..default()
+               }),
+               ..Default::default()
+           },
+           // MaterialMeshBundle {
+           //     mesh: meshes.add(create_triangle()),
+           //     material: materials.add(Color::rgb(1.0,0.4,0.2).into()),
+           //     ..default()
+           // },
+           Thingy,
+           RenderLayers::layer(0),
+       ));
+    */
     /*
         commands.spawn((
             PointLightBundle {

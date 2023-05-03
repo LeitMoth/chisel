@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use geometry::StandardPlane;
-use init::{change, setup_system, wiggle_system};
+use init::{change, setup_system};
 use ui::ChiselUIPlugin;
 use views::split::ChiselCamerasPlugin;
 use vmf2::vmf;
@@ -38,12 +38,16 @@ fn main() {
     // return;
 
     App::new()
+        // .insert_resource(AmbientLight {
+        //     color: Color::WHITE,
+        //     brightness: 0.2,
+        // })
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
         .add_plugin(ChiselUIPlugin)
         .add_plugin(ChiselCamerasPlugin)
         .add_startup_system(setup_system)
-        .add_system(wiggle_system)
+        // .add_system(wiggle_system)
         .add_system(change)
         .run();
 }

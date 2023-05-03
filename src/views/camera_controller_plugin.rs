@@ -10,10 +10,7 @@ use super::split::View3DCamera;
 Taken from the bevy scene-viewer example
  */
 
-/// Based on Valorant's default sensitivity, not entirely sure why it is exactly 1.0 / 180.0,
-/// but I'm guessing it is a misunderstanding between degrees/radians and then sticking with
-/// it because it felt nice.
-pub const RADIANS_PER_DOT: f32 = 1.0 / 180.0;
+pub const RADIANS_PER_DOT: f32 = 1.0 / 300.0;
 
 #[derive(Component)]
 pub struct CameraController {
@@ -170,6 +167,7 @@ fn camera_controller(
 
         // Handle mouse input
         let mut mouse_delta = Vec2::ZERO;
+        //TODO match the spacebar behavoir of hammer better, maybe look at what the original move_toggle was doing
         if key_input.pressed(options.key_enable_move)
             && mouse_button_input.pressed(options.mouse_key_enable_mouse)
         {
