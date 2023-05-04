@@ -10,11 +10,10 @@ use bevy::{
 use bevy_mod_raycast::RaycastSource;
 
 use crate::{
-    init::MyRaycastSet,
     ui::OccupiedScreenSpace,
     views::{
         camera_3d_controller::CameraController, camera_ortho_controller::CameraOrthoController,
-    },
+    }, controls::{MyRaycastSet, OrthoRaycastSet}
 };
 
 use super::{
@@ -76,6 +75,7 @@ pub fn setup_cameras(mut commands: Commands) {
                 $comp,
                 $comp2,
                 RenderLayers::layer(1),
+                RaycastSource::<OrthoRaycastSet>::new(),
             ));
         };
     }
@@ -123,6 +123,26 @@ pub enum ActiveSplit {
     #[default]
     None,
     View(CameraView, UVec2),
+}
+
+impl ActiveSplit {
+    // pub fn is_3d(&self) -> bool {
+    //     match self {
+    //         ActiveSplit::View(CameraView::View3D, _) => true,
+    //         _ => false,
+    //     }
+    // }
+
+    pub fn is(&self, v: CameraView) -> bool {
+        match self {
+            ActiveSplit::View(view, _) if v == *view => true,
+            _ => false
+        }
+    }
+
+    pub fn is_ortho(&self) -> bool {
+        self.is(CameraView::Front) || self.is(CameraView::Top) || self.is(CameraView::Side)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -122,7 +122,15 @@ pub fn ui_system(
     occupied_screen_space.bottom = egui::TopBottomPanel::bottom("bottom_panel")
         .resizable(false)
         .show(ctx, |ui| {
-            ui.label("Bottom Text");
+            match active_vmf
+                .active
+                .as_ref()
+                .and_then(|h| vmf_files.get_mut(h))
+            {
+                Some(vmf_file) => ui.label(vmf_file.path.to_str().unwrap()),
+                None => ui.label("No active file"),
+            };
+            // ui.label("Bottom Text");
             ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::hover());
         })
         .response

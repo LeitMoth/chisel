@@ -15,7 +15,7 @@ pub struct ActiveVmf {
 #[derive(Debug, TypeUuid)]
 #[uuid = "9497d134-0aee-4af7-9ae0-a5c5268eeb8e"]
 pub struct VmfFile {
-    path: PathBuf,
+    pub path: PathBuf,
     pub vmf: Vmf,
 }
 

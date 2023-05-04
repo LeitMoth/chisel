@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Component)]
+#[derive(Debug,Component)]
 pub struct SolidComponent {
     pub id: u32,
 }
