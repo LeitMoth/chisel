@@ -1,6 +1,6 @@
 use crate::vmf2::vmf;
 use bevy::{
-    prelude::{*},
+    prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 

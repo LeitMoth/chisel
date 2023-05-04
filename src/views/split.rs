@@ -3,12 +3,14 @@ use bevy::{
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
-        view::{RenderLayers},
+        view::RenderLayers,
     },
     window::PrimaryWindow,
 };
+use bevy_mod_raycast::RaycastSource;
 
 use crate::{
+    init::MyRaycastSet,
     ui::OccupiedScreenSpace,
     views::{
         camera_3d_controller::CameraController, camera_ortho_controller::CameraOrthoController,
@@ -47,6 +49,7 @@ pub fn setup_cameras(mut commands: Commands) {
         CameraController::default(),
         View3DCamera,
         RenderLayers::layer(0),
+        RaycastSource::<MyRaycastSet>::new(),
     ));
 
     macro_rules! ortho_cam {

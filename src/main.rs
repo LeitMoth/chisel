@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
-use init::{change_vmf, setup_system};
+use bevy_mod_raycast::{DefaultRaycastingPlugin, RaycastSystem};
+use init::{change_vmf, setup_system, InitPlugin};
 use ui::ChiselUIPlugin;
 use views::split::ChiselCamerasPlugin;
 
@@ -17,7 +18,6 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_plugin(ChiselUIPlugin)
         .add_plugin(ChiselCamerasPlugin)
-        .add_startup_system(setup_system)
-        .add_system(change_vmf)
+        .add_plugin(InitPlugin)
         .run();
 }

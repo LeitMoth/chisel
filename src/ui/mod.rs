@@ -74,7 +74,11 @@ pub fn ui_system(
                             println!("loaded");
                         }
                     }
-                    match active_vmf.active.as_ref().and_then(|h| vmf_files.get_mut(h)) {
+                    match active_vmf
+                        .active
+                        .as_ref()
+                        .and_then(|h| vmf_files.get_mut(h))
+                    {
                         Some(vmf_file) => {
                             if ui.button("Save").clicked() {
                                 println!("saving...");
