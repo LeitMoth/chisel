@@ -1,6 +1,6 @@
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
-    math::DVec2,
+    math::{DVec2, Mat3A},
     prelude::*,
     window::CursorGrabMode,
 };
@@ -22,13 +22,26 @@ pub struct CameraOrthoController {
     pub view: CameraView,
 }
 
+// Remember these are in column major order so they look rotated
+const TOP_MAT: Mat3 = Mat3::from_cols_array(&[1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]);
+const SIDE_MAT: Mat3 = Mat3::from_cols_array(&[-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
+const FRONT_MAT: Mat3 = Mat3::from_cols_array(&[0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]);
+
+pub fn get_view_mat(v: &CameraView) -> Mat3 {
+    match v {
+        CameraView::View3D => unreachable!(),
+        CameraView::Side => SIDE_MAT,
+        CameraView::Top => TOP_MAT,
+        CameraView::Front => FRONT_MAT,
+    }
+}
+
 //TODO: Fix this whole mess
 
 const SENSITIVITY: f32 = 0.02;
 
 pub fn camera_ortho_controller(
     active_split: Res<ActiveSplit>,
-    _time: Res<Time>,
     mut windows: Query<&mut Window>,
     mut mouse_events: EventReader<MouseMotion>,
     mouse_button_input: Res<Input<MouseButton>>,
@@ -67,25 +80,7 @@ pub fn camera_ortho_controller(
                         drag += ev.delta
                     }
 
-                    drag *= SENSITIVITY;
-
-                    let mut pos = transform.translation;
-                    match cam {
-                        CameraView::View3D => unreachable!(),
-                        CameraView::Top => {
-                            pos.x += drag.x;
-                            pos.z += drag.y;
-                        }
-                        CameraView::Side => {
-                            pos.x -= drag.x; // really not sure why the minus is needed here...
-                            pos.y += drag.y;
-                        }
-                        CameraView::Front => {
-                            pos.z += drag.x;
-                            pos.y += drag.y;
-                        }
-                    }
-                    *transform = transform.with_translation(pos);
+                    transform.translation += get_view_mat(cam) * drag.extend(0.0) * SENSITIVITY;
 
                     for mut window in &mut windows {
                         if !window.focused {

@@ -1,14 +1,18 @@
-use bevy::{prelude::*, render::view::RenderLayers, input::mouse::MouseMotion};
-use bevy_mod_raycast::{RaycastSystem, DefaultRaycastingPlugin, RaycastMesh, RaycastSource, RaycastMethod};
+use bevy::{input::mouse::MouseMotion, prelude::*, render::view::RenderLayers};
+use bevy_mod_raycast::{
+    DefaultRaycastingPlugin, RaycastMesh, RaycastMethod, RaycastSource, RaycastSystem,
+};
 
-use crate::{views::split::{ActiveSplit, CameraView}, solidcomp::SolidComponent};
-
+use crate::{
+    solidcomp::{SolidComponent, SideComponent},
+    views::{split::{ActiveSplit, CameraView}, camera_ortho_controller::get_view_mat},
+};
 
 pub struct ControlPlugin;
 
 impl Plugin for ControlPlugin {
-            fn build(&self, app: &mut bevy::prelude::App) {
-                app
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app
             // The DefaultRaycastingPlugin bundles all the functionality you might need into a single
             // plugin. This includes building rays, casting them, and placing a debug cursor at the
             // intersection. For more advanced uses, you can compose the systems in this plugin however
@@ -42,9 +46,12 @@ fn intersection(
     source: Query<&RaycastSource<MyRaycastSet>>,
     click: Res<Input<MouseButton>>,
     space: Res<Input<KeyCode>>,
-    active_split: Res<ActiveSplit>
+    active_split: Res<ActiveSplit>,
 ) {
-    if click.just_pressed(MouseButton::Left) && !space.pressed(KeyCode::Space) && active_split.is(CameraView::View3D) {
+    if click.just_pressed(MouseButton::Left)
+        && !space.pressed(KeyCode::Space)
+        && active_split.is(CameraView::View3D)
+    {
         let source = source.single();
 
         // Get the first intersection
@@ -71,47 +78,34 @@ fn intersection(
 
 fn ortho_intersection(
     q_possible_mesh_hits: Query<&Parent, With<RaycastMesh<OrthoRaycastSet>>>,
-    mut q_solid: Query<&mut SolidComponent>,
+    mut q_side: Query<(&mut SideComponent, &mut Transform)>,
     sources: Query<&RaycastSource<OrthoRaycastSet>>,
     click: Res<Input<MouseButton>>,
     mut mouse_motion: EventReader<MouseMotion>,
     space: Res<Input<KeyCode>>,
-    active_split: Res<ActiveSplit>
+    active_split: Res<ActiveSplit>,
 ) {
-    if click.just_pressed(MouseButton::Left) && !space.pressed(KeyCode::Space) && active_split.is_ortho() {
+    if click.pressed(MouseButton::Left)
+        && !space.pressed(KeyCode::Space)
+        && active_split.is_ortho()
+    {
         for source in sources.iter() {
-            if let (Some((entity, _)), ActiveSplit::View(view,_)) = (source.intersections().get(0), &*active_split) {
-
-                if let Ok(mut solid) = q_possible_mesh_hits.get(*entity).and_then(|parent| q_solid.get_mut(parent.get())) {
-
+            if let (Some((entity, _)), ActiveSplit::View(view, _)) =
+                (source.intersections().get(0), &*active_split)
+            {
+                if let Ok((mut side, mut trans)) = q_possible_mesh_hits
+                    .get(*entity)
+                    .and_then(|parent| q_side.get_mut(parent.get()))
+                {
                     let mut drag = Vec2::ZERO;
                     for ev in mouse_motion.iter() {
                         drag += ev.delta;
                     }
-
-                    solid.id += 100;
-
-                    let mut pos = Vec3::ZERO;
-
-                    match view {
-                        CameraView::View3D => unreachable!(),
-                        CameraView::Top => {
-                            pos.x += drag.x;
-                            pos.z += drag.y;
-                        }
-                        CameraView::Side => {
-                            pos.x -= drag.x; // really not sure why the minus is needed here...
-                            pos.y += drag.y;
-                        }
-                        CameraView::Front => {
-                            pos.z += drag.x;
-                            pos.y += drag.y;
-                        }
-                    }
-
-                    // TODO, we stopped here for the presentation
+                    trans.translation -= get_view_mat(view) * drag.extend(0.0) * 1.0;
+                    dbg!(&trans.translation);
+                    trans.translation = (trans.translation / 4.0).round() * 4.0;
+                    dbg!(&trans.translation);
                 }
-
             }
         }
     }
@@ -178,7 +172,6 @@ fn update_raycast_with_cursor(
 
 #[derive(Clone, Reflect)]
 pub struct OrthoRaycastSet;
-
 
 #[derive(Component)]
 pub struct ControlNob;

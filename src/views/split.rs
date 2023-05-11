@@ -10,10 +10,11 @@ use bevy::{
 use bevy_mod_raycast::RaycastSource;
 
 use crate::{
+    controls::{MyRaycastSet, OrthoRaycastSet},
     ui::OccupiedScreenSpace,
     views::{
         camera_3d_controller::CameraController, camera_ortho_controller::CameraOrthoController,
-    }, controls::{MyRaycastSet, OrthoRaycastSet}
+    },
 };
 
 use super::{
@@ -136,7 +137,7 @@ impl ActiveSplit {
     pub fn is(&self, v: CameraView) -> bool {
         match self {
             ActiveSplit::View(view, _) if v == *view => true,
-            _ => false
+            _ => false,
         }
     }
 
