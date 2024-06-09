@@ -122,7 +122,10 @@ pub fn side_to_triangles(side: Vec<Vec3>) -> Mesh {
     let len = side.len();
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
-        RenderAssetUsages::RENDER_WORLD,
+        // IMPORTANT NOTE: We *need* MAIN_WORLD here because the data must stay on
+        //                 the cpu for ray intersection for mouse picking of faces
+        //                 Without this, these faces silently aren't used in raycasts
+        RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
     );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
     let mut idx = Vec::new();

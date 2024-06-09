@@ -13,27 +13,39 @@ pub struct ControlPlugin;
 
 impl Plugin for ControlPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app
-            // The DefaultRaycastingPlugin bundles all the functionality you might need into a single
-            // plugin. This includes building rays, casting them, and placing a debug cursor at the
-            // intersection. For more advanced uses, you can compose the systems in this plugin however
-            // you need. For example, you might exclude the debug cursor system.
-            .add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
-            .add_plugins(DeferredRaycastingPlugin::<OrthoRaycastSet>::default())
-            // You will need to pay attention to what order you add systems! Putting them in the wrong
-            // order can result in multiple frames of latency. Ray casting should probably happen near
-            // start of the frame. For example, we want to be sure this system runs before we construct
-            // any rays, hence the ".before(...)". You can use these provided RaycastSystem labels to
-            // order your systems with the ones provided by the raycasting plugin.
-            // .add_system(
-            //     update_raycast_with_cursor
-            //         .in_base_set(CoreSet::First)
-            //         .before(RaycastSystem::BuildRays::<MyRaycastSet>)
-            //         .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
-            // )
-            .add_systems(Update, intersection)
-            .add_systems(Update, ortho_intersection)
-            .add_systems(Update, update_selected);
+        app.add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
+            .insert_resource(RaycastPluginState::<MyRaycastSet>::default().with_debug_cursor())
+            // .add_systems(Update, (intersection, update_selected))
+            .add_systems(Update, print_intersections::<MyRaycastSet>);
+        /*
+                app
+                    // The DefaultRaycastingPlugin bundles all the functionality you might need into a single
+                    // plugin. This includes building rays, casting them, and placing a debug cursor at the
+                    // intersection. For more advanced uses, you can compose the systems in this plugin however
+                    // you need. For example, you might exclude the debug cursor system.
+                    .add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
+                    .add_plugins(DeferredRaycastingPlugin::<OrthoRaycastSet>::default())
+                    // You will need to pay attention to what order you add systems! Putting them in the wrong
+                    // order can result in multiple frames of latency. Ray casting should probably happen near
+                    // start of the frame. For example, we want to be sure this system runs before we construct
+                    // any rays, hence the ".before(...)". You can use these provided RaycastSystem labels to
+                    // order your systems with the ones provided by the raycasting plugin.
+                    // .add_system(
+                    //     update_raycast_with_cursor
+                    //         .in_base_set(CoreSet::First)
+                    //         .before(RaycastSystem::BuildRays::<MyRaycastSet>)
+                    //         .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
+                    // )
+                    .add_systems(
+                        Update,
+                        update_raycast_with_cursor
+                            .before(RaycastSystem::BuildRays::<MyRaycastSet>)
+                            .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
+                    )
+                    .add_systems(Update, intersection)
+                    .add_systems(Update, ortho_intersection)
+                    .add_systems(Update, update_selected);
+        */
     }
 }
 

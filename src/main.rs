@@ -18,6 +18,8 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Chisel VMF Viewer".to_string(),
+                // apparently this give less latency for the raycaster
+                present_mode: bevy::window::PresentMode::AutoNoVsync,
                 ..default()
             }),
             ..default()

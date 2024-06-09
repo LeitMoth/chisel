@@ -48,7 +48,7 @@ pub fn setup_cameras(mut commands: Commands) {
         CameraController::default(),
         View3DCamera,
         RenderLayers::layer(0),
-        RaycastSource::<MyRaycastSet>::new(),
+        RaycastSource::<MyRaycastSet>::new_cursor(),
     ));
 
     macro_rules! ortho_cam {
