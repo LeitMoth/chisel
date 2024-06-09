@@ -1,11 +1,12 @@
 use bevy::{input::mouse::MouseMotion, prelude::*, render::view::RenderLayers};
-use bevy_mod_raycast::{
-    DefaultRaycastingPlugin, RaycastMesh, RaycastMethod, RaycastSource, RaycastSystem,
-};
+use bevy_mod_raycast::prelude::*;
 
 use crate::{
-    solidcomp::{SolidComponent, SideComponent},
-    views::{split::{ActiveSplit, CameraView}, camera_ortho_controller::get_view_mat},
+    solidcomp::SideComponent,
+    views::{
+        camera_ortho_controller::get_view_mat,
+        split::{ActiveSplit, CameraView},
+    },
 };
 
 pub struct ControlPlugin;
@@ -17,22 +18,22 @@ impl Plugin for ControlPlugin {
             // plugin. This includes building rays, casting them, and placing a debug cursor at the
             // intersection. For more advanced uses, you can compose the systems in this plugin however
             // you need. For example, you might exclude the debug cursor system.
-            .add_plugin(DefaultRaycastingPlugin::<MyRaycastSet>::default())
-            .add_plugin(DefaultRaycastingPlugin::<OrthoRaycastSet>::default())
+            .add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
+            .add_plugins(DeferredRaycastingPlugin::<OrthoRaycastSet>::default())
             // You will need to pay attention to what order you add systems! Putting them in the wrong
             // order can result in multiple frames of latency. Ray casting should probably happen near
             // start of the frame. For example, we want to be sure this system runs before we construct
             // any rays, hence the ".before(...)". You can use these provided RaycastSystem labels to
             // order your systems with the ones provided by the raycasting plugin.
-            .add_system(
-                update_raycast_with_cursor
-                    .in_base_set(CoreSet::First)
-                    .before(RaycastSystem::BuildRays::<MyRaycastSet>)
-                    .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
-            )
-            .add_system(intersection)
-            .add_system(ortho_intersection)
-            .add_system(update_selected);
+            // .add_system(
+            //     update_raycast_with_cursor
+            //         .in_base_set(CoreSet::First)
+            //         .before(RaycastSystem::BuildRays::<MyRaycastSet>)
+            //         .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
+            // )
+            .add_systems(Update, intersection)
+            .add_systems(Update, ortho_intersection)
+            .add_systems(Update, update_selected);
     }
 }
 
@@ -44,8 +45,8 @@ fn intersection(
     q_possible_mesh_hits: Query<&Parent, With<RaycastMesh<MyRaycastSet>>>,
     mut q_selected: Query<&mut Selected>,
     source: Query<&RaycastSource<MyRaycastSet>>,
-    click: Res<Input<MouseButton>>,
-    space: Res<Input<KeyCode>>,
+    click: Res<ButtonInput<MouseButton>>,
+    space: Res<ButtonInput<KeyCode>>,
     active_split: Res<ActiveSplit>,
 ) {
     if click.just_pressed(MouseButton::Left)
@@ -80,14 +81,12 @@ fn ortho_intersection(
     q_possible_mesh_hits: Query<&Parent, With<RaycastMesh<OrthoRaycastSet>>>,
     mut q_side: Query<(&mut SideComponent, &mut Transform)>,
     sources: Query<&RaycastSource<OrthoRaycastSet>>,
-    click: Res<Input<MouseButton>>,
+    click: Res<ButtonInput<MouseButton>>,
     mut mouse_motion: EventReader<MouseMotion>,
-    space: Res<Input<KeyCode>>,
+    space: Res<ButtonInput<KeyCode>>,
     active_split: Res<ActiveSplit>,
 ) {
-    if click.pressed(MouseButton::Left)
-        && !space.pressed(KeyCode::Space)
-        && active_split.is_ortho()
+    if click.pressed(MouseButton::Left) && !space.pressed(KeyCode::Space) && active_split.is_ortho()
     {
         for source in sources.iter() {
             if let (Some((entity, _)), ActiveSplit::View(view, _)) =
@@ -98,7 +97,7 @@ fn ortho_intersection(
                     .and_then(|parent| q_side.get_mut(parent.get()))
                 {
                     let mut drag = Vec2::ZERO;
-                    for ev in mouse_motion.iter() {
+                    for ev in mouse_motion.read() {
                         drag += ev.delta;
                     }
                     trans.translation -= get_view_mat(view) * drag.extend(0.0) * 1.0;
@@ -157,7 +156,7 @@ fn update_raycast_with_cursor(
     mut query2: Query<&mut RaycastSource<OrthoRaycastSet>>,
 ) {
     // Grab the most recent cursor event if it exists:
-    let cursor_position = match cursor.iter().last() {
+    let cursor_position = match cursor.read().last() {
         Some(cursor_moved) => cursor_moved.position,
         None => return,
     };

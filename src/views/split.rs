@@ -1,5 +1,4 @@
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig,
     prelude::*,
     render::{
         camera::{ScalingMode, Viewport},
@@ -7,7 +6,7 @@ use bevy::{
     },
     window::PrimaryWindow,
 };
-use bevy_mod_raycast::RaycastSource;
+use bevy_mod_raycast::prelude::*;
 
 use crate::{
     controls::{MyRaycastSet, OrthoRaycastSet},
@@ -26,12 +25,12 @@ pub struct ChiselCamerasPlugin;
 
 impl Plugin for ChiselCamerasPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_cameras)
+        app.add_systems(Startup, setup_cameras)
             .init_resource::<ActiveSplit>()
-            .add_system(update_cameras)
-            .add_system(update_active_split)
-            .add_plugin(CameraControllerPlugin)
-            .add_plugin(CameraOrthoControllerPlugin);
+            .add_systems(Update, update_cameras)
+            .add_systems(Update, update_active_split)
+            .add_plugins(CameraControllerPlugin)
+            .add_plugins(CameraOrthoControllerPlugin);
     }
 }
 
@@ -41,7 +40,7 @@ pub fn setup_cameras(mut commands: Commands) {
             transform: Transform::from_xyz(0.0, 1.0, -6.0).looking_at(Vec3::ZERO, Vec3::Y),
             // transform: Transform::from_xyz(-9_000.0, -1_000.0, -20.0).looking_at(Vec3::new(-9_450.0,-650.0, -24.0), Vec3::Y),
             camera_3d: Camera3d {
-                clear_color: ClearColorConfig::Custom(Color::BLACK),
+                // clear_color: ClearColorConfig::Custom(Color::BLACK),
                 ..default()
             },
             ..default()
@@ -68,7 +67,7 @@ pub fn setup_cameras(mut commands: Commands) {
                     }),
                     camera_3d: Camera3d {
                         // don't clear on the second camera because the first camera already cleared the window
-                        clear_color: ClearColorConfig::None,
+                        // clear_color: ClearColorConfig::None,
                         ..default()
                     },
                     ..default()

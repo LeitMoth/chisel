@@ -42,13 +42,13 @@ impl Default for CameraController {
             enabled: true,
             initialized: false,
             sensitivity: 1.0,
-            key_forward: KeyCode::W,
-            key_back: KeyCode::S,
-            key_left: KeyCode::A,
-            key_right: KeyCode::D,
-            key_up: KeyCode::E,
-            key_down: KeyCode::Q,
-            key_run: KeyCode::LShift,
+            key_forward: KeyCode::KeyW,
+            key_back: KeyCode::KeyS,
+            key_left: KeyCode::KeyA,
+            key_right: KeyCode::KeyD,
+            key_up: KeyCode::KeyE,
+            key_down: KeyCode::KeyQ,
+            key_run: KeyCode::ShiftLeft,
             mouse_key_enable_mouse: MouseButton::Left,
             // keyboard_key_enable_mouse: KeyCode::M,
             key_enable_move: KeyCode::Space,
@@ -95,7 +95,7 @@ pub struct CameraControllerPlugin;
 
 impl Plugin for CameraControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(camera_controller);
+        app.add_systems(Update, camera_controller);
     }
 }
 
@@ -104,8 +104,8 @@ fn camera_controller(
     time: Res<Time>,
     mut windows: Query<&mut Window>,
     mut mouse_events: EventReader<MouseMotion>,
-    mouse_button_input: Res<Input<MouseButton>>,
-    key_input: Res<Input<KeyCode>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    key_input: Res<ButtonInput<KeyCode>>,
     _move_toggled: Local<bool>,
     mut query: Query<(&mut Transform, &mut CameraController), With<View3DCamera>>,
 ) {
@@ -165,9 +165,9 @@ fn camera_controller(
         }
         let forward = transform.forward();
         let right = transform.right();
-        transform.translation += options.velocity.x * dt * right
-            + options.velocity.y * dt * Vec3::Y
-            + options.velocity.z * dt * forward;
+        transform.translation += right * options.velocity.x * dt
+            + Direction3d::Y * options.velocity.y * dt
+            + forward * options.velocity.z * dt;
 
         // Handle mouse input
         let mut mouse_delta = Vec2::ZERO;
@@ -175,7 +175,7 @@ fn camera_controller(
         if key_input.pressed(options.key_enable_move)
             && mouse_button_input.pressed(options.mouse_key_enable_mouse)
         {
-            for mouse_event in mouse_events.iter() {
+            for mouse_event in mouse_events.read() {
                 mouse_delta += mouse_event.delta;
             }
 

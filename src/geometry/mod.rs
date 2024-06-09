@@ -1,7 +1,7 @@
 use crate::vmf2::vmf;
 use bevy::{
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
 };
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ impl StandardPlane {
         let w = p.dot(c);
 
         if w.abs() > 20_000_000.0 {
-            dbg!(&(p,q,r,c,w));
+            dbg!(&(p, q, r, c, w));
         }
 
         StandardPlane { normal: c, d: w }
@@ -37,7 +37,8 @@ impl StandardPlane {
             x_axis: self.normal,
             y_axis: p1.normal,
             z_axis: p2.normal,
-        }.transpose();
+        }
+        .transpose();
 
         let d_col = Vec3::new(self.d, p1.d, p2.d);
 
@@ -119,7 +120,10 @@ pub fn planes_to_sides(planes: &[StandardPlane]) -> Vec<Vec<Vec3>> {
 
 pub fn side_to_triangles(side: Vec<Vec3>) -> Mesh {
     let len = side.len();
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
     let mut idx = Vec::new();
     for x in 2..len - 1 {
@@ -127,7 +131,7 @@ pub fn side_to_triangles(side: Vec<Vec3>) -> Mesh {
         idx.push(x as u16);
         idx.push(1);
     }
-    mesh.set_indices(Some(Indices::U16(idx)));
+    mesh.insert_indices(Indices::U16(idx));
     mesh.duplicate_vertices();
     mesh.compute_flat_normals();
 
@@ -135,9 +139,12 @@ pub fn side_to_triangles(side: Vec<Vec3>) -> Mesh {
 }
 
 pub fn side_to_lines(side: Vec<Vec3>) -> Mesh {
-    let mut linemesh = Mesh::new(PrimitiveTopology::LineStrip);
+    let mut linemesh = Mesh::new(
+        PrimitiveTopology::LineStrip,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     linemesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, side);
-    linemesh.set_indices(None);
+    // linemesh.insert_indices(None);
 
     linemesh
 }

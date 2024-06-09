@@ -1,19 +1,21 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, render::view::RenderLayers};
-use bevy_mod_raycast::{DefaultPluginState, NoBackfaceCulling, RaycastMesh};
+// use bevy_mod_raycast::{DefaultPluginState, NoBackfaceCulling, RaycastMesh};
+use bevy_mod_raycast::prelude::*;
 
 use crate::{
     controls::{ControlNob, MyRaycastSet, OrthoRaycastSet, Selected},
     geometry::{planes_to_sides, side_to_lines, side_to_triangles, StandardPlane},
-    solidcomp::{SolidComponent, SideComponent},
-    vmf2::{res::{ActiveVmf, VmfFile}, vmf::Side},
+    solidcomp::{SideComponent, SolidComponent},
+    vmf2::res::{ActiveVmf, VmfFile},
 };
 
 pub struct InitPlugin;
 impl Plugin for InitPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_system).add_system(change_vmf);
+        app.add_systems(Startup, setup_system)
+            .add_systems(Update, change_vmf);
     }
 }
 pub fn change_vmf(
@@ -55,7 +57,7 @@ pub fn change_vmf(
                             ..default()
                         },
                         VisibilityBundle::default(),
-                        SolidComponent { id: solid.id }
+                        SolidComponent { id: solid.id },
                     ))
                     .with_children(|child_builder| {
                         for side in sides {
@@ -109,7 +111,9 @@ pub fn change_vmf(
                                     child_builder.spawn((
                                         PbrBundle {
                                             transform: Transform::from_translation(avg),
-                                            mesh: meshes.add(shape::Cube { size: 16.0 }.into()),
+                                            mesh: meshes.add(Cuboid {
+                                                half_size: Vec3::splat(8.0),
+                                            }),
                                             material: materials.add(StandardMaterial {
                                                 base_color: Color::CYAN,
                                                 unlit: true,
@@ -134,7 +138,7 @@ pub fn setup_system(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.insert_resource(DefaultPluginState::<OrthoRaycastSet>::default().with_debug_cursor());
+    commands.insert_resource(RaycastPluginState::<OrthoRaycastSet>::default().with_debug_cursor());
     // directional 'sun' light
     commands.spawn((
         DirectionalLightBundle {

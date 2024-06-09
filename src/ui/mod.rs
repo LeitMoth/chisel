@@ -1,5 +1,8 @@
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{
+    egui::{self, load::SizedTexture},
+    EguiContexts,
+};
 
 use crate::vmf2::res::{ActiveVmf, VmfFile};
 
@@ -32,8 +35,9 @@ impl Plugin for ChiselUIPlugin {
         app.init_resource::<OccupiedScreenSpace>()
             .init_resource::<Images>()
             .init_resource::<ActiveVmf>()
-            .add_asset::<VmfFile>()
-            .add_system(ui_system);
+            .init_asset::<VmfFile>()
+            // .add_asset::<VmfFile>()
+            .add_systems(Update, ui_system);
     }
 }
 
@@ -143,19 +147,28 @@ pub fn ui_system(
         .show(ctx, |ui| {
             ui.vertical(|ui| {
                 if ui
-                    .add(egui::ImageButton::new(*rendered_texture_id, [32.0, 32.0]))
+                    .add(egui::ImageButton::new(SizedTexture::new(
+                        *rendered_texture_id,
+                        (32.0, 32.0),
+                    )))
                     .clicked()
                 {
                     println!("image click!")
                 }
                 if ui
-                    .add(egui::ImageButton::new(*rendered_texture_id, [32.0, 32.0]))
+                    .add(egui::ImageButton::new(SizedTexture::new(
+                        *rendered_texture_id,
+                        (32.0, 32.0),
+                    )))
                     .clicked()
                 {
                     println!("image click!")
                 }
                 if ui
-                    .add(egui::ImageButton::new(*rendered_texture_id, [32.0, 32.0]))
+                    .add(egui::ImageButton::new(SizedTexture::new(
+                        *rendered_texture_id,
+                        (32.0, 32.0),
+                    )))
                     .clicked()
                 {
                     println!("image click!")

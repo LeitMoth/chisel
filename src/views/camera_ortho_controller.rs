@@ -1,6 +1,6 @@
 use bevy::{
     input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel},
-    math::{DVec2, Mat3A},
+    math::DVec2,
     prelude::*,
     window::CursorGrabMode,
 };
@@ -13,7 +13,7 @@ pub struct CameraOrthoControllerPlugin;
 
 impl Plugin for CameraOrthoControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(camera_ortho_controller);
+        app.add_systems(Update, camera_ortho_controller);
     }
 }
 
@@ -44,9 +44,9 @@ pub fn camera_ortho_controller(
     active_split: Res<ActiveSplit>,
     mut windows: Query<&mut Window>,
     mut mouse_events: EventReader<MouseMotion>,
-    mouse_button_input: Res<Input<MouseButton>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut scroll_evr: EventReader<MouseWheel>,
-    key_input: Res<Input<KeyCode>>,
+    key_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Transform, &mut CameraOrthoController, &mut Projection)>,
 ) {
     if let ActiveSplit::View(cam, center) = &*active_split {
@@ -55,7 +55,7 @@ pub fn camera_ortho_controller(
                 if let Orthographic(p) = &mut *projection {
                     let mut zoom = 0.0;
 
-                    for ev in scroll_evr.iter() {
+                    for ev in scroll_evr.read() {
                         match ev.unit {
                             MouseScrollUnit::Line => {
                                 // println!("Scroll (line units): vertical: {}, horizontal: {}", ev.y, ev.x);
@@ -76,7 +76,7 @@ pub fn camera_ortho_controller(
                     && mouse_button_input.pressed(MouseButton::Left)
                 {
                     let mut drag = Vec2::ZERO;
-                    for ev in mouse_events.iter() {
+                    for ev in mouse_events.read() {
                         drag += ev.delta
                     }
 

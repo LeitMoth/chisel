@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use bevy::{
-    prelude::{Handle, Resource},
-    reflect::TypeUuid,
-};
+use bevy::prelude::*;
 
 use super::{generic::GenericNode, vmf::Vmf};
 
@@ -12,8 +9,7 @@ pub struct ActiveVmf {
     pub active: Option<Handle<VmfFile>>,
 }
 
-#[derive(Debug, TypeUuid)]
-#[uuid = "9497d134-0aee-4af7-9ae0-a5c5268eeb8e"]
+#[derive(Asset, TypePath, Debug)]
 pub struct VmfFile {
     pub path: PathBuf,
     pub vmf: Vmf,
