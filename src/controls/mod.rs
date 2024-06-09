@@ -13,39 +13,11 @@ pub struct ControlPlugin;
 
 impl Plugin for ControlPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
-            .insert_resource(RaycastPluginState::<MyRaycastSet>::default().with_debug_cursor())
-            // .add_systems(Update, (intersection, update_selected))
-            .add_systems(Update, print_intersections::<MyRaycastSet>);
-        /*
-                app
-                    // The DefaultRaycastingPlugin bundles all the functionality you might need into a single
-                    // plugin. This includes building rays, casting them, and placing a debug cursor at the
-                    // intersection. For more advanced uses, you can compose the systems in this plugin however
-                    // you need. For example, you might exclude the debug cursor system.
-                    .add_plugins(DeferredRaycastingPlugin::<MyRaycastSet>::default())
-                    .add_plugins(DeferredRaycastingPlugin::<OrthoRaycastSet>::default())
-                    // You will need to pay attention to what order you add systems! Putting them in the wrong
-                    // order can result in multiple frames of latency. Ray casting should probably happen near
-                    // start of the frame. For example, we want to be sure this system runs before we construct
-                    // any rays, hence the ".before(...)". You can use these provided RaycastSystem labels to
-                    // order your systems with the ones provided by the raycasting plugin.
-                    // .add_system(
-                    //     update_raycast_with_cursor
-                    //         .in_base_set(CoreSet::First)
-                    //         .before(RaycastSystem::BuildRays::<MyRaycastSet>)
-                    //         .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
-                    // )
-                    .add_systems(
-                        Update,
-                        update_raycast_with_cursor
-                            .before(RaycastSystem::BuildRays::<MyRaycastSet>)
-                            .before(RaycastSystem::BuildRays::<OrthoRaycastSet>),
-                    )
-                    .add_systems(Update, intersection)
-                    .add_systems(Update, ortho_intersection)
-                    .add_systems(Update, update_selected);
-        */
+        app.add_plugins(DeferredRaycastingPlugin::<View3DRaycastSet>::default())
+            .add_plugins(DeferredRaycastingPlugin::<OrthoRaycastSet>::default())
+            .insert_resource(RaycastPluginState::<View3DRaycastSet>::default())
+            .insert_resource(RaycastPluginState::<OrthoRaycastSet>::default())
+            .add_systems(Update, (intersection, ortho_intersection, update_selected));
     }
 }
 
@@ -54,9 +26,9 @@ pub struct Selected(pub bool);
 
 /// Report intersections
 fn intersection(
-    q_possible_mesh_hits: Query<&Parent, With<RaycastMesh<MyRaycastSet>>>,
+    q_possible_mesh_hits: Query<&Parent, With<RaycastMesh<View3DRaycastSet>>>,
     mut q_selected: Query<&mut Selected>,
-    source: Query<&RaycastSource<MyRaycastSet>>,
+    source: Query<&RaycastSource<View3DRaycastSet>>,
     click: Res<ButtonInput<MouseButton>>,
     space: Res<ButtonInput<KeyCode>>,
     active_split: Res<ActiveSplit>,
@@ -104,7 +76,7 @@ fn ortho_intersection(
             if let (Some((entity, _)), ActiveSplit::View(view, _)) =
                 (source.intersections().get(0), &*active_split)
             {
-                if let Ok((mut side, mut trans)) = q_possible_mesh_hits
+                if let Ok((_side, mut trans)) = q_possible_mesh_hits
                     .get(*entity)
                     .and_then(|parent| q_side.get_mut(parent.get()))
                 {
@@ -159,27 +131,7 @@ fn update_selected(
 /// of the same group, or "RaycastSet". For more complex use cases, you might use this to associate
 /// some meshes with one ray casting source, and other meshes with a different ray casting source."
 #[derive(Clone, Reflect)]
-pub struct MyRaycastSet;
-
-// Update our `RaycastSource` with the current cursor position every frame.
-fn update_raycast_with_cursor(
-    mut cursor: EventReader<CursorMoved>,
-    mut query1: Query<&mut RaycastSource<MyRaycastSet>>,
-    mut query2: Query<&mut RaycastSource<OrthoRaycastSet>>,
-) {
-    // Grab the most recent cursor event if it exists:
-    let cursor_position = match cursor.read().last() {
-        Some(cursor_moved) => cursor_moved.position,
-        None => return,
-    };
-
-    for mut pick_source in &mut query1 {
-        pick_source.cast_method = RaycastMethod::Screenspace(cursor_position);
-    }
-    for mut pick_source in &mut query2 {
-        pick_source.cast_method = RaycastMethod::Screenspace(cursor_position);
-    }
-}
+pub struct View3DRaycastSet;
 
 #[derive(Clone, Reflect)]
 pub struct OrthoRaycastSet;

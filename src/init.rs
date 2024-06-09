@@ -1,11 +1,10 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, render::view::RenderLayers};
-// use bevy_mod_raycast::{DefaultPluginState, NoBackfaceCulling, RaycastMesh};
 use bevy_mod_raycast::prelude::*;
 
 use crate::{
-    controls::{ControlNob, MyRaycastSet, OrthoRaycastSet, Selected},
+    controls::{ControlNob, OrthoRaycastSet, Selected, View3DRaycastSet},
     geometry::{planes_to_sides, side_to_lines, side_to_triangles, StandardPlane},
     solidcomp::{SideComponent, SolidComponent},
     vmf2::res::{ActiveVmf, VmfFile},
@@ -90,7 +89,7 @@ pub fn change_vmf(
                                         },
                                         RenderLayers::layer(0),
                                         NoBackfaceCulling,
-                                        RaycastMesh::<MyRaycastSet>::default(),
+                                        RaycastMesh::<View3DRaycastSet>::default(),
                                     ));
 
                                     let linemesh = side_to_lines(side);
@@ -138,7 +137,6 @@ pub fn setup_system(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.insert_resource(RaycastPluginState::<OrthoRaycastSet>::default().with_debug_cursor());
     // directional 'sun' light
     commands.spawn((
         DirectionalLightBundle {

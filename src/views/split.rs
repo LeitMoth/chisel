@@ -9,7 +9,7 @@ use bevy::{
 use bevy_mod_raycast::prelude::*;
 
 use crate::{
-    controls::{MyRaycastSet, OrthoRaycastSet},
+    controls::{OrthoRaycastSet, View3DRaycastSet},
     ui::OccupiedScreenSpace,
     views::{
         camera_3d_controller::CameraController, camera_ortho_controller::CameraOrthoController,
@@ -48,7 +48,7 @@ pub fn setup_cameras(mut commands: Commands) {
         CameraController::default(),
         View3DCamera,
         RenderLayers::layer(0),
-        RaycastSource::<MyRaycastSet>::new_cursor(),
+        RaycastSource::<View3DRaycastSet>::new_cursor(),
     ));
 
     macro_rules! ortho_cam {
@@ -75,7 +75,7 @@ pub fn setup_cameras(mut commands: Commands) {
                 $comp,
                 $comp2,
                 RenderLayers::layer(1),
-                RaycastSource::<OrthoRaycastSet>::new(),
+                RaycastSource::<OrthoRaycastSet>::new_cursor(),
             ));
         };
     }
