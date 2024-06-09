@@ -1,4 +1,3 @@
-use bevy::math::DVec2;
 use bevy::window::CursorGrabMode;
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
@@ -187,12 +186,8 @@ fn camera_controller(
                 window.cursor.grab_mode = CursorGrabMode::Locked;
                 window.cursor.visible = false;
 
-                // CursorGrabMode::Locked doesn't seem to do anything, so I use this little hack. Have to flip y for some reason
-                let height = window.physical_height();
-                window.set_physical_cursor_position(Some(DVec2::new(
-                    center.x as _,
-                    height.saturating_sub(center.y) as _,
-                )));
+                // CursorGrabMode::Locked doesn't seem to do anything, so I use this little hack.
+                window.set_physical_cursor_position(Some(center.as_dvec2()));
             }
         }
         if mouse_button_input.just_released(options.mouse_key_enable_mouse)

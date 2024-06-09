@@ -165,8 +165,6 @@ pub fn update_active_split(
     let top = occupied_screen_space.top as u32;
     let bottom = occupied_screen_space.bottom as u32;
 
-    let w_height = window.physical_height();
-
     // Ensure that each viewport has eat least one pixel of width.
     // Zero-width viewports cause a crash (with vulkan at least)
     // (We aren't drawing anything in this function, but we do this to stay consistent)
@@ -185,23 +183,24 @@ pub fn update_active_split(
 
     match window.physical_cursor_position() {
         Some(pos) => {
-            let pos = UVec2::new(pos.x as u32, w_height.saturating_sub(pos.y as _));
+            // let pos = UVec2::new(pos.x as u32, w_height.saturating_sub(pos.y as _));
+            let pos = UVec2::new(pos.x as u32, pos.y as u32);
 
-            if pos.cmpge(view_3d_corner).all() && pos.cmple(view_3d_corner + quarter_size).all() {
-                *active_split =
-                    ActiveSplit::View(CameraView::View3D, view_3d_corner + quarter_size / 2);
-            } else if pos.cmpge(top_corner).all() && pos.cmple(top_corner + quarter_size).all() {
-                *active_split = ActiveSplit::View(CameraView::Top, top_corner + quarter_size / 2);
-            } else if pos.cmpge(front_corner).all() && pos.cmple(front_corner + quarter_size).all()
-            {
-                *active_split =
-                    ActiveSplit::View(CameraView::Front, front_corner + quarter_size / 2);
-            } else if pos.cmpge(side_corner).all() && pos.cmple(side_corner + quarter_size).all() {
-                *active_split = ActiveSplit::View(CameraView::Side, side_corner + quarter_size / 2);
+            let in_quad = |min_corn: UVec2| -> bool {
+                pos.cmpge(min_corn).all() && pos.cmple(min_corn + quarter_size).all()
+            };
+
+            *active_split = if in_quad(view_3d_corner) {
+                ActiveSplit::View(CameraView::View3D, view_3d_corner + quarter_size / 2)
+            } else if in_quad(top_corner) {
+                ActiveSplit::View(CameraView::Top, top_corner + quarter_size / 2)
+            } else if in_quad(front_corner) {
+                ActiveSplit::View(CameraView::Front, front_corner + quarter_size / 2)
+            } else if in_quad(side_corner) {
+                ActiveSplit::View(CameraView::Side, side_corner + quarter_size / 2)
             } else {
-                *active_split = ActiveSplit::None;
+                ActiveSplit::None
             }
-            // dbg!(active_split);
         }
         None => *active_split = ActiveSplit::None,
     };
